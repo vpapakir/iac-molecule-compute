@@ -1,0 +1,47 @@
+# Example configuration for AWS EC2
+name_prefix     = "myapp-dev"
+instance_type   = "t3.micro"
+ssh_public_key  = "ssh-rsa AAAAB3NzaC1yc2EAAAA... your-public-key-here"
+create_public_ip = true
+
+# Optional: Custom AMI
+# ami_id = "ami-0abcdef1234567890"
+
+# Optional: Custom networking
+# vpc_cidr    = "10.0.0.0/16"
+# subnet_cidr = "10.0.1.0/24"
+
+# Optional: Custom storage
+# root_volume_type = "gp3"
+# root_volume_size = 20
+# encrypt_root_volume = true
+
+# Optional: Custom security group rules
+# ingress_rules = [
+#   {
+#     from_port   = 22
+#     to_port     = 22
+#     protocol    = "tcp"
+#     cidr_blocks = ["0.0.0.0/0"]
+#   },
+#   {
+#     from_port   = 80
+#     to_port     = 80
+#     protocol    = "tcp"
+#     cidr_blocks = ["0.0.0.0/0"]
+#   }
+# ]
+
+# Optional: User data script
+# user_data = <<-EOF
+#   #!/bin/bash
+#   apt-get update
+#   apt-get install -y nginx
+# EOF
+
+# Optional: Tags
+tags = {
+  Environment = "dev"
+  Project     = "myapp"
+  Owner       = "team-name"
+}
