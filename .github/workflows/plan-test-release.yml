@@ -1,0 +1,99 @@
+name: Plan-Test-Release
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  TERRAFORM_VERSION: 1.6.0
+
+jobs:
+  plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+    - name: Terraform Init AWS
+      run: |
+        cd iac/terraform/aws
+        terraform init
+
+    - name: Terraform Init Azure
+      run: |
+        cd iac/terraform/azure
+        terraform init
+
+    - name: Terraform Plan AWS
+      run: |
+        cd iac/terraform/aws
+        terraform plan
+
+    - name: Terraform Plan Azure
+      run: |
+        cd iac/terraform/azure
+        terraform plan
+
+  test:
+    name: Lint and Security Scan
+    runs-on: ubuntu-latest
+    needs: plan
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install Security Tools
+      run: |
+        pip install checkov
+
+    - name: Terraform Format Check
+      run: |
+        cd iac/terraform/aws
+        terraform fmt -check
+        terraform validate
+        cd ../azure
+        terraform fmt -check
+        terraform validate
+
+    - name: Security Scan with Checkov
+      run: |
+        cd iac/terraform/aws
+        checkov -f . --framework terraform
+        cd ../azure
+        checkov -f . --framework terraform
+
+  release:
+    name: Release Modules
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Publish Modules
+      run: |
+        echo "Publishing modules to Terraform Cloud..."
+        echo "This would typically involve:"
+        echo "1. Tagging the release"
+        echo "2. Publishing to Terraform Registry"
+        echo "3. Updating module versions"
+        echo "Release process completed"
