@@ -1,0 +1,49 @@
+# Example configuration for OCI compute instance
+name_prefix     = "myapp-dev"
+compartment_id  = "ocid1.compartment.oc1..aaaaaaaaxxxxxxxx"
+instance_shape  = "VM.Standard.E4.Flex"
+ssh_public_key  = "ssh-rsa AAAAB3NzaC1yc2EAAAA... your-public-key-here"
+create_public_ip = true
+
+# Optional: Custom shape configuration (for flexible shapes)
+instance_shape_config = {
+  ocpus         = 1
+  memory_in_gbs = 6
+}
+
+# Optional: Custom image
+# image_id = "ocid1.image.oc1..aaaaaaaaxxxxxxxx"
+
+# Optional: Custom networking
+# vcn_cidr    = "10.0.0.0/16"
+# subnet_cidr = "10.0.1.0/24"
+
+# Optional: Custom security rules
+# ingress_rules = [
+#   {
+#     protocol = "6"  # TCP
+#     source   = "0.0.0.0/0"
+#     port_min = 22
+#     port_max = 22
+#   },
+#   {
+#     protocol = "6"  # TCP
+#     source   = "0.0.0.0/0"
+#     port_min = 80
+#     port_max = 80
+#   }
+# ]
+
+# Optional: User data script
+# user_data = <<-EOF
+#   #!/bin/bash
+#   apt-get update
+#   apt-get install -y nginx
+# EOF
+
+# Optional: Tags
+tags = {
+  Environment = "dev"
+  Project     = "myapp"
+  Owner       = "team-name"
+}

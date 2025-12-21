@@ -1,0 +1,33 @@
+# Example configuration for Civo instance
+name_prefix     = "myapp-dev"
+region          = "LON1"
+instance_size   = "g3.small"
+disk_image      = "ubuntu-jammy"
+ssh_public_key  = "ssh-rsa AAAAB3NzaC1yc2EAAAA... your-public-key-here"
+create_public_ip = true
+
+# Optional: Custom firewall rules
+# firewall_rules = [
+#   {
+#     protocol   = "tcp"
+#     port_range = "22"
+#     cidr       = ["0.0.0.0/0"]
+#     label      = "SSH"
+#   },
+#   {
+#     protocol   = "tcp"
+#     port_range = "80"
+#     cidr       = ["0.0.0.0/0"]
+#     label      = "HTTP"
+#   }
+# ]
+
+# Optional: User data script
+# user_data = <<-EOF
+#   #!/bin/bash
+#   apt-get update
+#   apt-get install -y nginx
+# EOF
+
+# Optional: Tags
+tags = ["environment:dev", "project:myapp"]

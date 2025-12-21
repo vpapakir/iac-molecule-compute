@@ -1,0 +1,68 @@
+# Multi-environment compute configuration
+environments:
+  dev:
+    compute:
+      name: "myapp-dev"
+      provider: "azure"
+      region: "eastus"
+      size: "small"
+      os:
+        type: "linux"
+        image: "ubuntu-22.04"
+      networking:
+        public_ip: true
+        allow_ssh: true
+      storage:
+        type: "standard"
+        size_gb: 20
+      tags:
+        Environment: "dev"
+        Project: "myapp"
+
+  staging:
+    compute:
+      name: "myapp-staging"
+      provider: "aws"
+      region: "us-east-1"
+      size: "medium"
+      os:
+        type: "linux"
+        image: "ubuntu-22.04"
+      networking:
+        public_ip: true
+        allow_ssh: true
+        custom_rules:
+          - protocol: "tcp"
+            port: 80
+            source: "0.0.0.0/0"
+      storage:
+        type: "ssd"
+        size_gb: 40
+      tags:
+        Environment: "staging"
+        Project: "myapp"
+
+  prod:
+    compute:
+      name: "myapp-prod"
+      provider: "oci"
+      region: "us-ashburn-1"
+      size: "large"
+      os:
+        type: "linux"
+        image: "ubuntu-22.04"
+      networking:
+        public_ip: false  # Private instance
+        allow_ssh: true
+        custom_rules:
+          - protocol: "tcp"
+            port: 443
+            source: "10.0.0.0/8"
+      storage:
+        type: "premium"
+        size_gb: 100
+        encrypted: true
+      tags:
+        Environment: "prod"
+        Project: "myapp"
+        Backup: "required"
