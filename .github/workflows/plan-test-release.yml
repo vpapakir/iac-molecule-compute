@@ -3,16 +3,41 @@ name: Plan-Test-Release
 on:
   push:
     branches: [ main, develop ]
+    paths-ignore:
+      - 'README.md'
+      - '.azure/**'
+      - '.aws/**'
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      - 'README.md'
+      - '.azure/**'
+      - '.aws/**'
 
 env:
   TERRAFORM_VERSION: 1.6.0
 
 jobs:
+  check-trigger:
+    name: Check Trigger
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.check.outputs.should-run }}
+    steps:
+    - name: Check commit message
+      id: check
+      run: |
+        if [[ "${{ github.event.head_commit.message }}" == *"[gh]"* ]] || [[ "${{ github.event.head_commit.message }}" != *"[ado]"* && "${{ github.event.head_commit.message }}" != *"[aws]"* ]]; then
+          echo "should-run=true" >> $GITHUB_OUTPUT
+        else
+          echo "should-run=false" >> $GITHUB_OUTPUT
+        fi
+
   plan:
     name: Terraform Plan
     runs-on: ubuntu-latest
+    needs: check-trigger
+    if: needs.check-trigger.outputs.should-run == 'true'
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -45,7 +70,8 @@ jobs:
   test:
     name: Lint and Security Scan
     runs-on: ubuntu-latest
-    needs: plan
+    needs: [check-trigger, plan]
+    if: needs.check-trigger.outputs.should-run == 'true'
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -83,8 +109,8 @@ jobs:
   release:
     name: Release Modules
     runs-on: ubuntu-latest
-    needs: test
-    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
+    needs: [check-trigger, test]
+    if: needs.check-trigger.outputs.should-run == 'true' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
     steps:
     - name: Checkout
       uses: actions/checkout@v4

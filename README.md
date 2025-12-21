@@ -113,6 +113,22 @@ The compute molecule will then compose these atoms rather than managing resource
 
 ## Pipeline Configuration
 
+### Commit Message-Based Pipeline Triggering
+To avoid running all three pipelines simultaneously, use commit message prefixes to control which pipeline executes:
+
+- `[ado]` - Triggers Azure DevOps pipeline
+- `[gh]` - Triggers GitHub Actions pipeline  
+- `[aws]` - Triggers AWS CodePipeline
+- No prefix - Defaults to Azure DevOps pipeline
+
+**Examples:**
+```bash
+git commit -m "fix: update terraform module"           # Runs Azure DevOps (default)
+git commit -m "[gh] feat: add new feature"             # Runs GitHub Actions only
+git commit -m "[aws] chore: update pipeline"           # Runs AWS CodePipeline only
+git commit -m "[ado] docs: update README"              # Runs Azure DevOps only
+```
+
 ### GitHub Actions
 Workflow: `.github/workflows/plan-test-release.yml`
 - Triggers on push to main/develop branches and PRs
