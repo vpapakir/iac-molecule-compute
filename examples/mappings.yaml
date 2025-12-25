@@ -1,0 +1,92 @@
+# Size mappings for cloud-agnostic compute sizes
+size_mappings:
+  azure:
+    small: "Standard_B2s"
+    medium: "Standard_D2s_v3"
+    large: "Standard_D4s_v3"
+    xlarge: "Standard_D8s_v3"
+  
+  aws:
+    small: "t3.micro"
+    medium: "t3.medium"
+    large: "t3.large"
+    xlarge: "t3.xlarge"
+  
+  civo:
+    small: "g3.small"
+    medium: "g3.medium"
+    large: "g3.large"
+    xlarge: "g3.xlarge"
+  
+  oci:
+    small:
+      shape: "VM.Standard.E4.Flex"
+      ocpus: 1
+      memory_gb: 6
+    medium:
+      shape: "VM.Standard.E4.Flex"
+      ocpus: 2
+      memory_gb: 12
+    large:
+      shape: "VM.Standard.E4.Flex"
+      ocpus: 4
+      memory_gb: 24
+    xlarge:
+      shape: "VM.Standard.E4.Flex"
+      ocpus: 8
+      memory_gb: 48
+
+# OS image mappings
+image_mappings:
+  azure:
+    ubuntu-22.04:
+      publisher: "Canonical"
+      offer: "0001-com-ubuntu-server-jammy"
+      sku: "22_04-lts-gen2"
+    ubuntu-20.04:
+      publisher: "Canonical"
+      offer: "0001-com-ubuntu-server-focal"
+      sku: "20_04-lts-gen2"
+    windows-2022:
+      publisher: "MicrosoftWindowsServer"
+      offer: "WindowsServer"
+      sku: "2022-datacenter-g2"
+  
+  aws:
+    ubuntu-22.04: "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"
+    ubuntu-20.04: "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"
+    windows-2022: "Windows_Server-2022-English-Full-Base-*"
+  
+  civo:
+    ubuntu-22.04: "ubuntu-jammy"
+    ubuntu-20.04: "ubuntu-focal"
+  
+  oci:
+    ubuntu-22.04:
+      os: "Canonical Ubuntu"
+      version: "22.04"
+    ubuntu-20.04:
+      os: "Canonical Ubuntu"
+      version: "20.04"
+
+# Storage type mappings
+storage_mappings:
+  azure:
+    standard: "Standard_LRS"
+    premium: "Premium_LRS"
+    ssd: "StandardSSD_LRS"
+  
+  aws:
+    standard: "gp2"
+    premium: "io1"
+    ssd: "gp3"
+  
+  civo:
+    standard: "ssd"  # Civo only has SSD
+    premium: "ssd"
+    ssd: "ssd"
+  
+  oci:
+    standard: "balanced"
+    premium: "higher_performance"
+    ssd: "balanced"

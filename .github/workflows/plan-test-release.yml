@@ -1,0 +1,134 @@
+name: Plan-Test-Release
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths-ignore:
+      - 'README.md'
+      - '.azure/**'
+      - '.aws/**'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - 'README.md'
+      - '.azure/**'
+      - '.aws/**'
+
+env:
+  TERRAFORM_VERSION: 1.6.0
+
+jobs:
+  check-trigger:
+    name: Check Trigger
+    runs-on: ubuntu-latest
+    outputs:
+      should-run: ${{ steps.check.outputs.should-run }}
+    steps:
+    - name: Check commit message
+      id: check
+      run: |
+        if [[ "${{ github.event.head_commit.message }}" == *"[gh]"* ]] || [[ "${{ github.event.head_commit.message }}" != *"[ado]"* && "${{ github.event.head_commit.message }}" != *"[aws]"* ]]; then
+          echo "should-run=true" >> $GITHUB_OUTPUT
+        else
+          echo "should-run=false" >> $GITHUB_OUTPUT
+        fi
+
+  plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    needs: check-trigger
+    if: needs.check-trigger.outputs.should-run == 'true'
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+    - name: Terraform Init AWS
+      run: |
+        cd iac/terraform/aws
+        terraform init
+
+    - name: Terraform Init Azure
+      run: |
+        cd iac/terraform/azure
+        terraform init
+
+    - name: Terraform Plan AWS
+      run: |
+        cd iac/terraform/aws
+        terraform plan
+
+    - name: Terraform Plan Azure
+      run: |
+        cd iac/terraform/azure
+        terraform plan
+
+  test:
+    name: Lint and Security Scan
+    runs-on: ubuntu-latest
+    needs: [check-trigger, plan]
+    if: needs.check-trigger.outputs.should-run == 'true'
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install Security Tools
+      run: |
+        pip install checkov
+
+    - name: Terraform Format Check
+      run: |
+        cd iac/terraform/aws
+        terraform fmt -check
+        terraform validate
+        cd ../azure
+        terraform fmt -check
+        terraform validate
+
+    - name: Security Scan with Checkov
+      run: |
+        cd iac/terraform/aws
+        checkov -f . --framework terraform
+        cd ../azure
+        checkov -f . --framework terraform
+
+  release:
+    name: Release Modules
+    runs-on: ubuntu-latest
+    needs: [check-trigger, test]
+    if: needs.check-trigger.outputs.should-run == 'true' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Publish Modules
+      env:
+        TF_CLOUD_TOKEN: ${{ secrets.TF_CLOUD_TOKEN }}
+      run: |
+        echo "Publishing modules to Terraform Cloud..."
+        
+        # Generate version based on run number and commit
+        VERSION="0.1.${{ github.run_number }}-$(echo ${{ github.sha }} | cut -c1-7)"
+        echo "Publishing version: $VERSION"
+        
+        # Create git tag for this version
+        git config user.email "action@github.com"
+        git config user.name "GitHub Action"
+        git tag -a "v$VERSION" -m "Automated release v$VERSION"
+        git push origin "v$VERSION"
+        
+        echo "Modules published with version: v$VERSION"

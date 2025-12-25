@@ -1,0 +1,26 @@
+# Example configuration for Azure VM
+name_prefix          = "myapp-dev"
+resource_group_name  = "rg-myapp-dev"
+location            = "East US"
+vm_size             = "Standard_B2s"
+os_type             = "linux"
+admin_username      = "azureuser"
+ssh_public_key      = "ssh-rsa AAAAB3NzaC1yc2EAAAA... your-public-key-here"
+create_public_ip    = true
+os_disk_type        = "Standard_LRS"
+
+# Optional: Override default Ubuntu image
+# image_publisher = "Canonical"
+# image_offer     = "0001-com-ubuntu-server-jammy"
+# image_sku       = "22_04-lts-gen2"
+
+# Optional: Custom networking
+# vnet_address_space     = "10.0.0.0/16"
+# subnet_address_prefix  = "10.0.1.0/24"
+
+# Optional: Tags
+tags = {
+  Environment = "dev"
+  Project     = "myapp"
+  Owner       = "team-name"
+}

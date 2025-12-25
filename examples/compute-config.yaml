@@ -1,0 +1,53 @@
+# Cloud-agnostic compute configuration
+compute:
+  # Basic configuration
+  name: "myapp-dev"
+  provider: "azure"  # azure, aws, civo, oci
+  region: "eastus"   # Provider-specific region
+  
+  # Instance configuration
+  size: "small"      # small, medium, large, xlarge
+  os:
+    type: "linux"     # linux, windows
+    image: "ubuntu-22.04"  # ubuntu-22.04, ubuntu-20.04, windows-2022, etc.
+  
+  # Networking
+  networking:
+    public_ip: true
+    allow_ssh: true
+    custom_rules:
+      - protocol: "tcp"
+        port: 80
+        source: "0.0.0.0/0"
+        description: "HTTP"
+      - protocol: "tcp"
+        port: 443
+        source: "0.0.0.0/0"
+        description: "HTTPS"
+  
+  # Authentication
+  auth:
+    ssh_public_key: "ssh-rsa AAAAB3NzaC1yc2EAAAA..."
+    # For Windows (Azure only)
+    admin_password: null
+  
+  # Storage
+  storage:
+    type: "standard"   # standard, premium, ssd
+    size_gb: 20
+    encrypted: true
+  
+  # Initialization
+  user_data: |
+    #!/bin/bash
+    apt-get update
+    apt-get install -y nginx
+    systemctl enable nginx
+    systemctl start nginx
+  
+  # Tags/Labels
+  tags:
+    Environment: "dev"
+    Project: "myapp"
+    Owner: "team-name"
+    CostCenter: "engineering"
