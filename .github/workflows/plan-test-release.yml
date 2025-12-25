@@ -2,133 +2,251 @@ name: Plan-Test-Release
 
 on:
   push:
-    branches: [ main, develop ]
-    paths-ignore:
-      - 'README.md'
-      - '.azure/**'
-      - '.aws/**'
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
-    paths-ignore:
-      - 'README.md'
-      - '.azure/**'
-      - '.aws/**'
+    branches: [ main, master ]
 
 env:
-  TERRAFORM_VERSION: 1.6.0
+  TF_CLOUD_TOKEN: ${{ secrets.TF_CLOUD_TOKEN }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  TEMPLATES_VERSION: v0.0.1  # Update this to use latest iac-pipeline-templates release
 
 jobs:
-  check-trigger:
-    name: Check Trigger
+  commit-check:
+    name: Check Commit Message
     runs-on: ubuntu-latest
     outputs:
       should-run: ${{ steps.check.outputs.should-run }}
+      should-create-pr: ${{ steps.check.outputs.should-create-pr }}
+      should-release: ${{ steps.check.outputs.should-release }}
     steps:
-    - name: Check commit message
-      id: check
-      run: |
-        if [[ "${{ github.event.head_commit.message }}" == *"[gh]"* ]] || [[ "${{ github.event.head_commit.message }}" != *"[ado]"* && "${{ github.event.head_commit.message }}" != *"[aws]"* ]]; then
-          echo "should-run=true" >> $GITHUB_OUTPUT
-        else
-          echo "should-run=false" >> $GITHUB_OUTPUT
-        fi
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check commit message
+        id: check
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "Commit message: $COMMIT_MSG"
+          
+          # Check if this is GitHub Actions pipeline or default (no prefix)
+          if [[ "$COMMIT_MSG" == *"[gh]"* ]] || [[ "$COMMIT_MSG" != *"[ado]"* && "$COMMIT_MSG" != *"[aws]"* ]]; then
+            echo "✓ Pipeline should run for GitHub Actions"
+            echo "should-run=true" >> $GITHUB_OUTPUT
+            
+            # Set pipeline variables for conditional stages
+            if [[ "$COMMIT_MSG" == *"[release]"* ]] && [[ "$GITHUB_REF" != "refs/heads/main" ]] && [[ "$GITHUB_REF" != "refs/heads/master" ]]; then
+              echo "should-create-pr=true" >> $GITHUB_OUTPUT
+              echo "should-release=false" >> $GITHUB_OUTPUT
+            elif [[ "$GITHUB_REF" == "refs/heads/main" ]] || [[ "$GITHUB_REF" == "refs/heads/master" ]]; then
+              echo "should-create-pr=false" >> $GITHUB_OUTPUT
+              echo "should-release=true" >> $GITHUB_OUTPUT
+            else
+              echo "should-create-pr=false" >> $GITHUB_OUTPUT
+              echo "should-release=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "✗ Pipeline should not run for GitHub Actions - commit message: $COMMIT_MSG"
+            echo "should-run=false" >> $GITHUB_OUTPUT
+            echo "should-create-pr=false" >> $GITHUB_OUTPUT
+            echo "should-release=false" >> $GITHUB_OUTPUT
+          fi
 
   plan:
     name: Terraform Plan
     runs-on: ubuntu-latest
-    needs: check-trigger
-    if: needs.check-trigger.outputs.should-run == 'true'
+    needs: commit-check
+    if: needs.commit-check.outputs.should-run == 'true'
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: ${{ env.TERRAFORM_VERSION }}
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
 
-    - name: Terraform Init AWS
-      run: |
-        cd iac/terraform/aws
-        terraform init
+      - name: Configure Terraform Cloud authentication
+        run: |
+          mkdir -p ~/.terraform.d
+          echo "credentials \"app.terraform.io\" { token = \"$TF_CLOUD_TOKEN\" }" > ~/.terraform.d/credentials.tfrc.json
 
-    - name: Terraform Init Azure
-      run: |
-        cd iac/terraform/azure
-        terraform init
-
-    - name: Terraform Plan AWS
-      run: |
-        cd iac/terraform/aws
-        terraform plan
-
-    - name: Terraform Plan Azure
-      run: |
-        cd iac/terraform/azure
-        terraform plan
+      - name: Test module consumption patterns
+        run: |
+          echo "Testing module consumption patterns..."
+          cd examples/aws-example
+          terraform init
+          terraform plan
+          cd ../azure-example  
+          terraform init
+          terraform plan
+          echo "✓ Plan stage completed successfully"
 
   test:
-    name: Lint and Security Scan
+    name: Security and Linting
     runs-on: ubuntu-latest
-    needs: [check-trigger, plan]
-    if: needs.check-trigger.outputs.should-run == 'true'
+    needs: commit-check
+    if: needs.commit-check.outputs.should-run == 'true'
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: ${{ env.TERRAFORM_VERSION }}
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
 
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
 
-    - name: Install Security Tools
-      run: |
-        pip install checkov
+      - name: Install security scanning tools
+        run: |
+          pip install checkov
 
-    - name: Terraform Format Check
-      run: |
-        cd iac/terraform/aws
-        terraform fmt -check
-        terraform validate
-        cd ../azure
-        terraform fmt -check
-        terraform validate
+      - name: Run security scanning and linting
+        run: |
+          echo "Running security scanning and linting..."
+          cd iac/terraform/aws
+          terraform fmt -check
+          terraform validate
+          checkov -f . --framework terraform --quiet
+          cd ../azure
+          terraform fmt -check  
+          terraform validate
+          checkov -f . --framework terraform --quiet
+          cd ../civo
+          terraform fmt -check
+          terraform validate
+          checkov -f . --framework terraform --quiet
+          cd ../oci
+          terraform fmt -check
+          terraform validate
+          checkov -f . --framework terraform --quiet
+          echo "✓ All security and linting tests passed"
 
-    - name: Security Scan with Checkov
-      run: |
-        cd iac/terraform/aws
-        checkov -f . --framework terraform
-        cd ../azure
-        checkov -f . --framework terraform
+  create-pr:
+    name: Create Pull Request
+    runs-on: ubuntu-latest
+    needs: [commit-check, plan, test]
+    if: needs.commit-check.outputs.should-create-pr == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create pull request
+        run: |
+          echo "Creating pull request..."
+          
+          # Configure git
+          git config --global user.email "pipeline@company.com"
+          git config --global user.name "GitHub Actions"
+          
+          # Get current branch name
+          CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          echo "Current branch: $CURRENT_BRANCH"
+          
+          # Determine target branch
+          if git show-ref --verify --quiet refs/remotes/origin/main; then
+            TARGET_BRANCH="main"
+          else
+            TARGET_BRANCH="master"
+          fi
+          echo "Target branch: $TARGET_BRANCH"
+          
+          # Create PR
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          PR_TITLE="Release: $(echo "$COMMIT_MSG" | head -n1 | sed 's/\[.*\]//g' | xargs)"
+          
+          gh pr create \
+            --title "$PR_TITLE" \
+            --body "Automated PR created by GitHub Actions
+
+          Commit: $COMMIT_MSG
+
+          Ready for review and release approval." \
+            --base "$TARGET_BRANCH" \
+            --head "$CURRENT_BRANCH"
+          
+          echo "✓ Pull request created successfully"
 
   release:
-    name: Release Modules
+    name: Publish Modules
     runs-on: ubuntu-latest
-    needs: [check-trigger, test]
-    if: needs.check-trigger.outputs.should-run == 'true' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
+    needs: [commit-check, plan, test]
+    if: needs.commit-check.outputs.should-release == 'true'
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Publish Modules
-      env:
-        TF_CLOUD_TOKEN: ${{ secrets.TF_CLOUD_TOKEN }}
-      run: |
-        echo "Publishing modules to Terraform Cloud..."
-        
-        # Generate version based on run number and commit
-        VERSION="0.1.${{ github.run_number }}-$(echo ${{ github.sha }} | cut -c1-7)"
-        echo "Publishing version: $VERSION"
-        
-        # Create git tag for this version
-        git config user.email "action@github.com"
-        git config user.name "GitHub Action"
-        git tag -a "v$VERSION" -m "Automated release v$VERSION"
-        git push origin "v$VERSION"
-        
-        echo "Modules published with version: v$VERSION"
+      - name: Publish modules to Terraform Cloud
+        run: |
+          echo "Publishing modules to Terraform Cloud..."
+          
+          # Configure git with GitHub token for authentication
+          git config --global user.email "pipeline@company.com"
+          git config --global user.name "GitHub Actions"
+          git remote set-url origin https://$GITHUB_TOKEN@github.com/$GITHUB_REPOSITORY.git
+          
+          # Get the latest version from git tags
+          echo "Fetching latest version from git tags..."
+          git fetch --tags
+          LATEST_TAG=$(git tag -l "v*" | sort -V | tail -n1)
+          
+          if [ -z "$LATEST_TAG" ]; then
+            # No previous tags, start with 0.0.1
+            CURRENT_MAJOR=0
+            CURRENT_MINOR=0
+            CURRENT_PATCH=1
+            echo "No previous tags found, starting with 0.0.1"
+          else
+            # Parse current version
+            CURRENT_VERSION=${LATEST_TAG#v}
+            CURRENT_MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
+            CURRENT_MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
+            CURRENT_PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
+            echo "Current version: $CURRENT_VERSION (Major: $CURRENT_MAJOR, Minor: $CURRENT_MINOR, Patch: $CURRENT_PATCH)"
+          fi
+          
+          # Get PR approval message to determine version bump
+          echo "Checking PR approval message for version bump type..."
+          
+          # Get the merge commit message which contains PR info
+          MERGE_COMMIT_MSG="$(git log -1 --pretty=%B)"
+          echo "Merge commit message: $MERGE_COMMIT_MSG"
+          
+          # Determine version bump based on approval message
+          if echo "$MERGE_COMMIT_MSG" | grep -i "APPROVED MAJOR" > /dev/null; then
+            NEW_MAJOR=$((CURRENT_MAJOR + 1))
+            NEW_MINOR=0
+            NEW_PATCH=0
+            BUMP_TYPE="MAJOR"
+          elif echo "$MERGE_COMMIT_MSG" | grep -i "APPROVED MINOR" > /dev/null; then
+            NEW_MAJOR=$CURRENT_MAJOR
+            NEW_MINOR=$((CURRENT_MINOR + 1))
+            NEW_PATCH=0
+            BUMP_TYPE="MINOR"
+          else
+            # Default to PATCH if no specific approval message or "APPROVED PATCH"
+            NEW_MAJOR=$CURRENT_MAJOR
+            NEW_MINOR=$CURRENT_MINOR
+            NEW_PATCH=$((CURRENT_PATCH + 1))
+            BUMP_TYPE="PATCH"
+          fi
+          
+          VERSION="$NEW_MAJOR.$NEW_MINOR.$NEW_PATCH"
+          echo "Version bump type: $BUMP_TYPE"
+          echo "Publishing version: $VERSION"
+          
+          # Create git tag for this version
+          git tag -a "v$VERSION" -m "Automated release v$VERSION"
+          git push origin "v$VERSION"
+          
+          echo "✓ Modules published with version: v$VERSION"
