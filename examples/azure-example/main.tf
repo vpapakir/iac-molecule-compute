@@ -1,12 +1,4 @@
 terraform {
-  cloud {
-    organization = "vpapakir"
-    
-    workspaces {
-      name = "compute-azure-example"
-    }
-  }
-  
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"

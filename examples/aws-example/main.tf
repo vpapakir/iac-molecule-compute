@@ -1,12 +1,4 @@
 terraform {
-  cloud {
-    organization = "vpapakir"
-    
-    workspaces {
-      name = "compute-aws-example"
-    }
-  }
-  
   required_providers {
     aws = {
       source  = "hashicorp/aws"
