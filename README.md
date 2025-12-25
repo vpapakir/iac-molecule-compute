@@ -25,11 +25,12 @@ Developers interact with infrastructure through YAML parameter files, abstractin
    - Module publishing to Terraform Cloud (on main/master)
 
 ### Multi-Platform CI/CD
-- **GitHub Actions** (`.github/workflows/` directory)
-- **Azure DevOps Pipelines** (`.azure/` directory)
-- **AWS CodePipeline** (`.aws/` directory)
+- **Azure DevOps** (`.azure/` directory) - Gold standard implementation
+- **GitHub Actions** (`.github/workflows/` directory) - Mirrors Azure DevOps functionality
+- **AWS CodePipeline** (`.aws/` directory) - CloudFormation-based pipeline
+- **Oracle Cloud DevOps** (`.oci/` directory) - OCI DevOps build specification
 
-All three platforms execute identical plan-test-release workflows with template-based architecture for maximum reusability.
+All four platforms execute identical plan-test-release workflows with intelligent commit message filtering, conditional PR creation, and reviewer-controlled semantic versioning.
 
 ## Current Implementation
 
@@ -120,23 +121,43 @@ module "compute" {
 git commit -m "[ado] feat: add new compute features"
 git push origin feature-branch
 ```
-- Runs Plan → Test stages
-- Validates module functionality
+- Runs Commit Check → Plan → Test stages
+- Validates module functionality across all platforms
 
 #### 2. Release Intent
 ```bash
 git commit -m "[ado][release] feat: ready for release"
 git push origin feature-branch
 ```
-- Runs Plan → Test → **Create PR** stages
+- Runs Commit Check → Plan → Test → **Create PR** stages
 - Automatically creates PR to main/master
-- Requires team review and approval
+- Requires team review and approval with version control
 
 #### 3. Automatic Publication
-- PR approval and merge triggers pipeline on main/master
-- Runs Plan → Test → **Release** stages
+- Reviewer approves PR with version message (e.g., "APPROVED MINOR")
+- PR merge triggers pipeline on main/master
+- Runs Commit Check → Plan → Test → **Release** stages
 - Publishes versioned module to Terraform Cloud
-- Creates git tag with auto-generated version
+- Creates git tag with semantic version
+
+### Intelligent Semantic Versioning
+
+The release pipeline implements reviewer-controlled semantic versioning:
+
+**Version Determination Logic:**
+- Parses git tags to find current version (starts with 0.0.1 if no tags exist)
+- Analyzes PR merge commit messages for approval keywords
+- Increments version based on reviewer approval message:
+  - `APPROVED MAJOR` → Major version bump (1.0.0 → 2.0.0)
+  - `APPROVED MINOR` → Minor version bump (1.0.0 → 1.1.0)
+  - `APPROVED PATCH` or default → Patch version bump (1.0.0 → 1.0.1)
+
+**Example Workflow:**
+1. Developer creates PR with `[release]` flag
+2. Automated PR is created by pipeline
+3. Reviewer approves with message: "APPROVED MINOR - new cloud provider support"
+4. PR merge triggers release pipeline
+5. Pipeline creates version 1.1.0 and publishes to Terraform Cloud
 
 ## Pipeline Configuration
 
@@ -165,6 +186,7 @@ Control which CI/CD platform executes using commit message prefixes:
 - `[ado]` - Triggers Azure DevOps pipeline
 - `[gh]` - Triggers GitHub Actions pipeline  
 - `[aws]` - Triggers AWS CodePipeline
+- `[oci]` - Triggers Oracle Cloud DevOps pipeline
 - `[release]` - Initiates release workflow (creates PR or publishes)
 - No prefix - Defaults to Azure DevOps pipeline
 
@@ -173,49 +195,69 @@ Control which CI/CD platform executes using commit message prefixes:
 git commit -m "fix: update terraform module"           # Runs Azure DevOps (default)
 git commit -m "[gh] feat: add new feature"             # Runs GitHub Actions only
 git commit -m "[aws] chore: update pipeline"           # Runs AWS CodePipeline only
+git commit -m "[oci] docs: update documentation"       # Runs Oracle Cloud DevOps only
 git commit -m "[ado][release] docs: update README"     # Runs Azure DevOps + Release workflow
 ```
 
 ### Pipeline Stages
 
+#### Commit Check Stage
+- Parses commit messages to determine which CI/CD platform should execute
+- Sets conditional variables for PR creation and release workflows
+- Validates commit message format and pipeline routing
+
 #### Plan Stage
 - Configures Terraform Cloud authentication
-- Initializes example configurations
-- Runs `terraform plan` for validation
-- Tests module consumption patterns
+- Tests module consumption patterns using example configurations
+- Validates Terraform plans across all cloud providers
+- Ensures modules can be consumed correctly
 
 #### Test Stage
 - Installs security scanning tools (Checkov)
-- Runs `terraform fmt -check` and `terraform validate`
-- Performs security vulnerability scanning
-- Validates code quality and compliance
+- Runs `terraform fmt -check` and `terraform validate` across all modules
+- Performs security vulnerability scanning on all cloud provider modules
+- Validates code quality and compliance standards
 
 #### Create PR Stage (Conditional)
-- **Trigger**: `[release]` in commit message + not on main/master
-- Creates pull request to main/master branch
+- **Trigger**: `[release]` in commit message + not on main/master branch
+- Creates pull request to main/master branch using GitHub CLI
 - Includes automated PR description with change summary
-- Sets up approval workflow for release
+- Sets up approval workflow for release with version control
 
 #### Release Stage (Conditional)
 - **Trigger**: Pipeline runs on main/master branch
-- Generates semantic version based on build number and commit hash
-- Creates git tag for release tracking
+- Implements intelligent semantic versioning based on PR approval messages
+- Parses reviewer approval messages (APPROVED MAJOR/MINOR/PATCH)
+- Creates git tags with proper SemVer formatting
 - Publishes modules to Terraform Cloud registry
-- Makes modules available for consumption
 
 ### Required Variable Groups
 
-#### `terraform` Variable Group
+#### Azure DevOps Variable Groups
+
+**`terraform` Variable Group**
 - `apiKey` - Terraform Cloud API token
 
-#### `shared` Variable Group
+**`shared` Variable Group**
 - `ARM_CLIENT_ID` - Azure Service Principal ID
 - `ARM_CLIENT_SECRET` - Azure Service Principal Secret
 - `ARM_SUBSCRIPTION_ID` - Azure Subscription ID
 - `ARM_TENANT_ID` - Azure Tenant ID
-- `AWS_ACCESS_KEY_ID` - AWS Access Key (when ready)
-- `AWS_SECRET_ACCESS_KEY` - AWS Secret Key (when ready)
-- `AWS_DEFAULT_REGION` - AWS Default Region (when ready)
+- `GITHUB_TOKEN` - GitHub Personal Access Token (for PR creation)
+
+#### GitHub Actions Secrets
+- `TF_CLOUD_TOKEN` - Terraform Cloud API token
+- `GITHUB_TOKEN` - Automatically provided by GitHub Actions
+
+#### AWS CodePipeline Parameters
+- `TerraformCloudToken` - Terraform Cloud API token
+- `GitHubToken` - GitHub Personal Access Token
+- `GitHubOwner` - GitHub repository owner
+- `GitHubRepo` - GitHub repository name
+#### Oracle Cloud DevOps Parameters
+- `TF_CLOUD_TOKEN` - Terraform Cloud API token
+- `GITHUB_TOKEN` - GitHub Personal Access Token
+- Build pipeline environment variables for OCI authentication
 
 ## Future Evolution
 
@@ -256,6 +298,9 @@ iac-molecule-compute/
 ├── .github/                   # GitHub Actions workflows
 │   └── workflows/
 │       └── plan-test-release.yml
+```
+.oci/                      # Oracle Cloud DevOps pipeline
+│   └── build_spec.yaml    # OCI DevOps build specification
 ├── examples/                  # Pipeline testing examples
 │   ├── azure-example/         # Azure module consumption example
 │   ├── aws-example/           # AWS module consumption example
