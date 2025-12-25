@@ -15,7 +15,7 @@ provider "azurerm" {
 module "compute" {
   source = "../../iac/terraform/azure"
   
-  name_prefix         = "vm"
+  name_prefix         = "vm-"
   resource_group_name = "rg-weu-dev-gen-001"  # Replace with your resource group
   location           = "West Europe"
   vm_size            = "Standard_B2s"

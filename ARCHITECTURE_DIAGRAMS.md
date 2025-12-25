@@ -5,18 +5,18 @@
 ```mermaid
 graph TB
     subgraph "Developer Experience"
-        DEV[👨‍💻 Developer]
-        YAML[📄 YAML Config]
+        DEV["👨💻 Developer"]
+        YAML["📄 YAML Config"]
         DEV --> YAML
     end
 
     subgraph "Template Repository"
-        TPL[🏗️ iac-pipeline-templates<br/>v0.0.1]
+        TPL["🏗️ iac-pipeline-templates v0.0.1"]
         subgraph "Pipeline Templates"
-            ADO_T[Azure DevOps Templates]
-            GH_T[GitHub Actions Templates]
-            AWS_T[AWS CodePipeline Templates]
-            OCI_T[Oracle DevOps Templates]
+            ADO_T["Azure DevOps Templates"]
+            GH_T["GitHub Actions Templates"]
+            AWS_T["AWS CodePipeline Templates"]
+            OCI_T["Oracle DevOps Templates"]
         end
         TPL --> ADO_T
         TPL --> GH_T
@@ -25,28 +25,28 @@ graph TB
     end
 
     subgraph "Infrastructure Modules"
-        COMPUTE[🖥️ iac-molecule-compute]
-        FUTURE1[🔮 iac-atom-network]
-        FUTURE2[🔮 iac-molecule-storage]
-        FUTURE3[🔮 iac-template-app]
+        COMPUTE["🖥️ iac-molecule-compute"]
+        FUTURE1["🔮 iac-atom-network"]
+        FUTURE2["🔮 iac-molecule-storage"]
+        FUTURE3["🔮 iac-template-app"]
     end
 
     subgraph "CI/CD Platforms"
-        ADO[🔵 Azure DevOps]
-        GHA[⚫ GitHub Actions]
-        AWS[🟠 AWS CodePipeline]
-        OCI[🔴 Oracle Cloud DevOps]
+        ADO["🔵 Azure DevOps"]
+        GHA["⚫ GitHub Actions"]
+        AWS["🟠 AWS CodePipeline"]
+        OCI["🔴 Oracle Cloud DevOps"]
     end
 
     subgraph "Cloud Providers"
-        AZURE[☁️ Azure VMs]
-        AWSEC2[☁️ AWS EC2]
-        CIVO[☁️ Civo Instances]
-        OCIVM[☁️ OCI Compute]
+        AZURE["☁️ Azure VMs"]
+        AWSEC2["☁️ AWS EC2"]
+        CIVO["☁️ Civo Instances"]
+        OCIVM["☁️ OCI Compute"]
     end
 
     subgraph "State & Registry"
-        TFC[🏛️ Terraform Cloud<br/>State & Registry]
+        TFC["🏛️ Terraform Cloud State & Registry"]
     end
 
     %% Connections
@@ -88,42 +88,42 @@ graph TB
 
 ```mermaid
 flowchart TD
-    START[👨‍💻 Developer starts work]
-    BRANCH[🌿 Create feature branch]
-    DEVELOP[💻 Develop & commit]
+    START["👨💻 Developer starts work"]
+    BRANCH["🌿 Create feature branch"]
+    DEVELOP["💻 Develop & commit"]
     
     subgraph "Commit Message Decision"
-        MSG{Commit Message?}
+        MSG{"Commit Message?"}
         ADO_MSG["[ado] feat: new feature"]
         GH_MSG["[gh] feat: new feature"]
         AWS_MSG["[aws] feat: new feature"]
         OCI_MSG["[oci] feat: new feature"]
-        DEFAULT_MSG["feat: new feature<br/>(defaults to ADO)"]
+        DEFAULT_MSG["feat: new feature (defaults to ADO)"]
     end
 
     subgraph "Pipeline Execution"
-        COMMIT_CHECK[🔍 Commit Check]
-        PLAN[📋 Plan Stage]
-        TEST[🔒 Test Stage<br/>Security & Linting]
+        COMMIT_CHECK["🔍 Commit Check"]
+        PLAN["📋 Plan Stage"]
+        TEST["🔒 Test Stage Security & Linting"]
         
-        RELEASE_FLAG{Has [release] flag?}
-        CREATE_PR[📝 Create PR Stage]
-        SKIP_PR[⏭️ Skip PR Creation]
+        RELEASE_FLAG{"Has [release] flag?"}
+        CREATE_PR["📝 Create PR Stage"]
+        SKIP_PR["⏭️ Skip PR Creation"]
     end
 
     subgraph "Review Process"
-        PR_REVIEW[👥 Team Review]
-        APPROVAL{Approval Message?}
-        MAJOR["APPROVED MAJOR<br/>v1.0.0 → v2.0.0"]
-        MINOR["APPROVED MINOR<br/>v1.0.0 → v1.1.0"]
-        PATCH["APPROVED PATCH<br/>v1.0.0 → v1.0.1"]
+        PR_REVIEW["👥 Team Review"]
+        APPROVAL{"Approval Message?"}
+        MAJOR["APPROVED MAJOR v1.0.0 → v2.0.0"]
+        MINOR["APPROVED MINOR v1.0.0 → v1.1.0"]
+        PATCH["APPROVED PATCH v1.0.0 → v1.0.1"]
     end
 
     subgraph "Release Execution"
-        MERGE[🔀 Merge to main]
-        RELEASE_STAGE[🚀 Release Stage]
-        VERSION[🏷️ Create Git Tag]
-        PUBLISH[📦 Publish to Terraform Cloud]
+        MERGE["🔀 Merge to main"]
+        RELEASE_STAGE["🚀 Release Stage"]
+        VERSION["🏷️ Create Git Tag"]
+        PUBLISH["📦 Publish to Terraform Cloud"]
     end
 
     %% Flow
@@ -184,38 +184,38 @@ flowchart TD
 ```mermaid
 graph LR
     subgraph "Source Control"
-        REPO[📁 iac-molecule-compute]
-        COMMIT[💬 Commit Message<br/>[platform][release] message]
+        REPO["📁 iac-molecule-compute"]
+        COMMIT["💬 Commit Message [platform][release] message"]
     end
 
     subgraph "Pipeline Templates"
-        TEMPLATES[🏗️ iac-pipeline-templates<br/>v0.0.1]
+        TEMPLATES["🏗️ iac-pipeline-templates v0.0.1"]
     end
 
     subgraph "CI/CD Platform Routing"
-        ADO_PIPE[🔵 Azure DevOps<br/>pipeline.yml]
-        GH_PIPE[⚫ GitHub Actions<br/>plan-test-release.yml]
-        AWS_PIPE[🟠 AWS CodePipeline<br/>pipeline-complete.yaml]
-        OCI_PIPE[🔴 Oracle DevOps<br/>build_spec.yaml]
+        ADO_PIPE["🔵 Azure DevOps pipeline.yml"]
+        GH_PIPE["⚫ GitHub Actions plan-test-release.yml"]
+        AWS_PIPE["🟠 AWS CodePipeline pipeline-complete.yaml"]
+        OCI_PIPE["🔴 Oracle DevOps build_spec.yaml"]
     end
 
     subgraph "Execution Stages"
-        STAGE1[1️⃣ Commit Check<br/>Platform Filtering]
-        STAGE2[2️⃣ Plan<br/>Module Testing]
-        STAGE3[3️⃣ Test<br/>Security & Linting]
-        STAGE4[4️⃣ Create PR<br/>Conditional]
-        STAGE5[5️⃣ Release<br/>Versioning & Publishing]
+        STAGE1["1️⃣ Commit Check Platform Filtering"]
+        STAGE2["2️⃣ Plan Module Testing"]
+        STAGE3["3️⃣ Test Security & Linting"]
+        STAGE4["4️⃣ Create PR Conditional"]
+        STAGE5["5️⃣ Release Versioning & Publishing"]
     end
 
     subgraph "Target Infrastructure"
-        AZURE_VM[☁️ Azure VMs]
-        AWS_EC2[☁️ AWS EC2]
-        CIVO_VM[☁️ Civo Instances]
-        OCI_VM[☁️ OCI Compute]
+        AZURE_VM["☁️ Azure VMs"]
+        AWS_EC2["☁️ AWS EC2"]
+        CIVO_VM["☁️ Civo Instances"]
+        OCI_VM["☁️ OCI Compute"]
     end
 
     subgraph "State Management"
-        TF_CLOUD[🏛️ Terraform Cloud<br/>State & Module Registry]
+        TF_CLOUD["🏛️ Terraform Cloud State & Module Registry"]
     end
 
     %% Connections
@@ -267,28 +267,28 @@ graph LR
 
 ```mermaid
 flowchart TD
-    COMMIT[💬 Git Commit Message]
+    COMMIT["💬 Git Commit Message"]
     
     subgraph "Message Parsing"
-        CHECK_ADO{Contains '[ado]'?}
-        CHECK_GH{Contains '[gh]'?}
-        CHECK_AWS{Contains '[aws]'?}
-        CHECK_OCI{Contains '[oci]'?}
-        CHECK_RELEASE{Contains '[release]'?}
+        CHECK_ADO{"Contains [ado]?"}
+        CHECK_GH{"Contains [gh]?"}
+        CHECK_AWS{"Contains [aws]?"}
+        CHECK_OCI{"Contains [oci]?"}
+        CHECK_RELEASE{"Contains [release]?"}
     end
 
     subgraph "Platform Execution"
-        RUN_ADO[🔵 Run Azure DevOps]
-        RUN_GH[⚫ Run GitHub Actions]
-        RUN_AWS[🟠 Run AWS CodePipeline]
-        RUN_OCI[🔴 Run Oracle DevOps]
-        RUN_DEFAULT[🔵 Run Azure DevOps<br/>(Default)]
+        RUN_ADO["🔵 Run Azure DevOps"]
+        RUN_GH["⚫ Run GitHub Actions"]
+        RUN_AWS["🟠 Run AWS CodePipeline"]
+        RUN_OCI["🔴 Run Oracle DevOps"]
+        RUN_DEFAULT["🔵 Run Azure DevOps (Default)"]
     end
 
     subgraph "Stage Control"
-        NORMAL_STAGES[📋 Plan → Test]
-        PR_STAGES[📋 Plan → Test → Create PR]
-        RELEASE_STAGES[📋 Plan → Test → Release]
+        NORMAL_STAGES["📋 Plan → Test"]
+        PR_STAGES["📋 Plan → Test → Create PR"]
+        RELEASE_STAGES["📋 Plan → Test → Release"]
     end
 
     subgraph "Examples"
@@ -315,8 +315,8 @@ flowchart TD
     CHECK_AWS -->|No| CHECK_OCI
     CHECK_OCI -->|No| RUN_DEFAULT
 
-    CHECK_RELEASE -->|Yes + Feature Branch| PR_STAGES
-    CHECK_RELEASE -->|Yes + Main Branch| RELEASE_STAGES
+    CHECK_RELEASE -->|"Yes + Feature Branch"| PR_STAGES
+    CHECK_RELEASE -->|"Yes + Main Branch"| RELEASE_STAGES
     CHECK_RELEASE -->|No| NORMAL_STAGES
 
     %% Examples
