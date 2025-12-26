@@ -1,0 +1,42 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo "Starting AWS CodePipeline build..."
+      - echo "Commit message - $CODEBUILD_SOURCE_VERSION"
+      - echo "Branch - $CODEBUILD_WEBHOOK_HEAD_REF"
+      
+  build:
+    commands:
+      - |
+        COMMIT_MSG=$(git log -1 --pretty=%B)
+        echo "Commit message: $COMMIT_MSG"
+        
+        # Check if this is AWS pipeline or default (no prefix)
+        if [[ "$COMMIT_MSG" == *"[aws]"* ]] || [[ "$COMMIT_MSG" != *"[ado]"* && "$COMMIT_MSG" != *"[gh]"* && "$COMMIT_MSG" != *"[oci]"* ]]; then
+          echo "✓ Pipeline should run for AWS CodePipeline"
+          
+          # Here you would call your centralized templates
+          # For now, just simulate the stages
+          echo "→ Running Plan stage..."
+          echo "→ Running Test stage..."
+          
+          if [[ "$COMMIT_MSG" == *"[release]"* ]] && [[ "$CODEBUILD_WEBHOOK_HEAD_REF" != "refs/heads/main" ]]; then
+            echo "→ Would create PR (release flag + feature branch)"
+          elif [[ "$CODEBUILD_WEBHOOK_HEAD_REF" == "refs/heads/main" ]]; then
+            echo "→ Would run Release stage (main branch)"
+          fi
+          
+        else
+          echo "✗ Pipeline should not run for AWS - commit message: $COMMIT_MSG"
+          exit 1
+        fi
+        
+  post_build:
+    commands:
+      - echo "AWS CodePipeline build completed successfully!"
+
+artifacts:
+  files:
+    - '**/*'
