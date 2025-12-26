@@ -261,6 +261,13 @@ git commit -m "[ado][release] docs: update README"     # Runs Azure DevOps + Rel
 
 ## Future Evolution
 
+### Centralized Pipeline Templates
+Pipeline templates have been moved to the centralized `iac-pipeline-templates` repository:
+- **Template Repository**: https://github.com/vpapakir/iac-pipeline-templates
+- **Current Version**: `v0.0.3`
+- **Reusable Across**: All infrastructure modules (atoms, molecules, templates)
+- **Consistent Workflows**: Same plan-test-release logic organization-wide
+
 ### Atomic Decomposition
 Over time, individual components will be extracted into separate atoms:
 - **VNet Atom**: Virtual network provisioning
@@ -271,10 +278,11 @@ Over time, individual components will be extracted into separate atoms:
 The compute molecule will then compose these atoms rather than managing resources directly.
 
 ### Pipeline Template Repository
-Templates will be moved to a centralized `iac-pipeline-templates` repository:
+Templates are now centralized in the `iac-pipeline-templates` repository:
 - Shared across all infrastructure repositories
-- Versioned template releases
+- Versioned template releases (`v0.0.3`)
 - Consistent CI/CD patterns organization-wide
+- Reduced code duplication and maintenance overhead
 
 ### Additional Features
 - **Multi-environment support** - Dev, staging, production configurations
@@ -287,17 +295,15 @@ Templates will be moved to a centralized `iac-pipeline-templates` repository:
 ```
 iac-molecule-compute/
 ├── .aws/                      # AWS CodePipeline infrastructure
-│   ├── pipeline.yaml          # CloudFormation template
+│   ├── pipeline-complete.yaml # Complete CloudFormation template
 │   └── deploy-pipeline.sh     # Deployment script
 ├── .azure/                    # Azure DevOps pipeline definitions
-│   ├── pipeline.yml           # Main pipeline orchestration
-│   ├── provision.yaml         # Legacy monolithic pipeline
-│   └── templates/             # Reusable pipeline templates
-│       ├── stages/            # Stage-level templates
-│       └── jobs/              # Job-level templates
+│   └── pipeline.yml           # Main pipeline using centralized templates
 ├── .github/                   # GitHub Actions workflows
 │   └── workflows/
 │       └── plan-test-release.yml
+├── .oci/                      # Oracle Cloud DevOps pipeline
+│   └── build_spec.yaml        # OCI DevOps build specification
 ```
 .oci/                      # Oracle Cloud DevOps pipeline
 │   └── build_spec.yaml    # OCI DevOps build specification
