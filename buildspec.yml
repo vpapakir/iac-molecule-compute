@@ -40,7 +40,9 @@ phases:
           echo "=============================="
         else
           # Direct git source or webhook
-          COMMIT_MSG=$(git log -1 --pretty=%B 2>/dev/null || echo "")
+          COMMIT_MSG=$(git log -1 --pretty=%B 2>/dev/null | tr -d '\0' || echo "")
+          # Clean up commit message
+          COMMIT_MSG=$(echo "$COMMIT_MSG" | head -1 | tr -d '\n\r')
           echo "=== COMMIT MESSAGE DEBUG ==="
           echo "Raw commit message: '$COMMIT_MSG'"
           echo "Commit message length: ${#COMMIT_MSG}"
@@ -153,7 +155,7 @@ phases:
           # Fallback to actual git branch if webhook ref is not available
           CURRENT_BRANCH_REF="$CODEBUILD_WEBHOOK_HEAD_REF"
           if [ -z "$CURRENT_BRANCH_REF" ]; then
-            ACTUAL_BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
+            ACTUAL_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || git symbolic-ref --short HEAD 2>/dev/null || echo "development")
             CURRENT_BRANCH_REF="refs/heads/$ACTUAL_BRANCH"
             echo "Using fallback branch: $CURRENT_BRANCH_REF"
           fi
