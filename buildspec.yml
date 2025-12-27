@@ -82,6 +82,7 @@ phases:
           # Determine which modules to scan based on commit message
           if [[ "$COMMIT_MSG" == *"[aws]"* ]]; then
             # AWS-specific pipeline - only scan AWS module
+            echo "Scanning AWS module only (AWS-specific pipeline)..."
             if [ -d "iac/terraform/aws" ]; then
               cd iac/terraform/aws
               terraform init
@@ -94,11 +95,17 @@ phases:
                 exit 1
               fi
               cd ../../..
+              echo "✓ AWS module validation completed"
+            else
+              echo "⚠️ AWS module directory not found"
+              exit 1
             fi
           else
             # Default pipeline - scan all modules
+            echo "Scanning all modules (default pipeline)..."
             for provider in aws azure civo oci; do
               if [ -d "iac/terraform/$provider" ]; then
+                echo "Scanning $provider module..."
                 cd "iac/terraform/$provider"
                 terraform init
                 terraform fmt -check

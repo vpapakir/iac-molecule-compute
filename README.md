@@ -183,20 +183,27 @@ Pipelines use reusable templates for maintainability:
 ### Commit Message-Based Pipeline Triggering
 Control which CI/CD platform executes using commit message prefixes:
 
-- `[ado]` - Triggers Azure DevOps pipeline
-- `[gh]` - Triggers GitHub Actions pipeline  
-- `[aws]` - Triggers AWS CodePipeline
-- `[oci]` - Triggers Oracle Cloud DevOps pipeline
-- `[release]` - Initiates release workflow (creates PR or publishes)
-- No prefix - Defaults to Azure DevOps pipeline
+| Commit Message | Platform | Target Provider | Modules Validated | Use Case |
+|---|---|---|---|---|
+| `[ado]` | Azure DevOps | Azure | Azure only | Azure-specific development |
+| `[gh] [azure]` | GitHub Actions | Azure | Azure only | Cross-platform Azure testing |
+| `[gh] [amazon]` | GitHub Actions | AWS | AWS only | Cross-platform AWS testing |
+| `[gh] [civo]` | GitHub Actions | Civo | Civo only | Cross-platform Civo testing |
+| `[gh] [oci]` | GitHub Actions | OCI | OCI only | Cross-platform OCI testing |
+| `[gh]` | GitHub Actions | All | All modules | Multi-cloud validation |
+| `[aws]` | AWS CodePipeline | AWS | AWS only | AWS-specific development |
+| `[oci]` | Oracle Cloud DevOps | OCI | OCI only | OCI-specific development |
+| No prefix | Azure DevOps (default) | All | All modules | General development, Civo work |
 
-**Examples:**
+**Release Workflow Examples:**
 ```bash
-git commit -m "fix: update terraform module"           # Runs Azure DevOps (default)
-git commit -m "[gh] feat: add new feature"             # Runs GitHub Actions only
-git commit -m "[aws] chore: update pipeline"           # Runs AWS CodePipeline only
-git commit -m "[oci] docs: update documentation"       # Runs Oracle Cloud DevOps only
-git commit -m "[ado][release] docs: update README"     # Runs Azure DevOps + Release workflow
+# Platform-specific releases
+git commit -m "[ado] [release] feat: azure vm improvements"     # Azure DevOps → PR
+git commit -m "[aws] [release] feat: ec2 security updates"       # AWS CodePipeline → PR
+git commit -m "[gh] [azure] [release] feat: test azure changes" # GitHub Actions → PR
+
+# Multi-cloud releases
+git commit -m "[release] feat: cross-cloud networking updates"   # Azure DevOps → PR (default)
 ```
 
 ### Pipeline Stages
