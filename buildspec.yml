@@ -193,8 +193,8 @@ phases:
               -H "Accept: application/vnd.github.v3+json" \
               https://api.github.com/repos/vpapakir/iac-molecule-compute/pulls \
               -d '{
-                "title": "Release: Civo module fixes and improvements",
-                "body": "Automated PR created by AWS CodePipeline\n\nManual build trigger\n\nReady for review and release approval.",
+                "title": "[aws] Release: Civo module fixes and improvements",
+                "body": "Automated PR created by AWS CodePipeline\n\nManual build trigger\n\nReady for review and release approval.\n\nNote: Merge with [aws] prefix to ensure AWS CodePipeline handles release.",
                 "head": "development",
                 "base": "main"
               }'
