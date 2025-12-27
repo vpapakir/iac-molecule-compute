@@ -32,7 +32,7 @@ jobs:
           echo "Commit message: $COMMIT_MSG"
           
           # Check if this is GitHub Actions pipeline or default (no prefix)
-          if [[ "$COMMIT_MSG" == *"[gh]"* ]] || [[ "$COMMIT_MSG" != *"[ado]"* && "$COMMIT_MSG" != *"[aws]"* ]]; then
+          if [[ "$COMMIT_MSG" == *"[gh]"* ]] || [[ "$COMMIT_MSG" != *"[ado]"* && "$COMMIT_MSG" != *"[aws]"* && "$COMMIT_MSG" != *"[oci]"* ]]; then
             echo "✓ Pipeline should run for GitHub Actions"
             echo "should-run=true" >> $GITHUB_OUTPUT
             

@@ -65,31 +65,42 @@ phases:
           # TEST STAGE - Security scanning and linting
           echo "→ Running Test stage..."
           
-          # Scan AWS modules if they exist
-          if [ -d "iac/terraform/aws" ]; then
-            cd iac/terraform/aws
-            terraform init
-            terraform fmt -check
-            terraform validate
-            checkov -d . --framework terraform
-            CHECKOV_EXIT_CODE=$?
-            if [ $CHECKOV_EXIT_CODE -ne 0 ]; then
-              echo "⚠️ Security scan found issues in AWS module"
-              exit 1
-            fi
-            cd ../../..
-          fi
-          
-          # Scan other cloud modules for validation only
-          for provider in azure civo oci; do
-            if [ -d "iac/terraform/$provider" ]; then
-              cd "iac/terraform/$provider"
+          # Determine which modules to scan based on commit message
+          if [[ "$COMMIT_MSG" == *"[aws]"* ]]; then
+            # AWS-specific pipeline - only scan AWS module
+            if [ -d "iac/terraform/aws" ]; then
+              cd iac/terraform/aws
               terraform init
               terraform fmt -check
               terraform validate
+              checkov -d . --framework terraform
+              CHECKOV_EXIT_CODE=$?
+              if [ $CHECKOV_EXIT_CODE -ne 0 ]; then
+                echo "⚠️ Security scan found issues in AWS module"
+                exit 1
+              fi
               cd ../../..
             fi
-          done
+          else
+            # Default pipeline - scan all modules
+            for provider in aws azure civo oci; do
+              if [ -d "iac/terraform/$provider" ]; then
+                cd "iac/terraform/$provider"
+                terraform init
+                terraform fmt -check
+                terraform validate
+                if [ "$provider" = "aws" ]; then
+                  checkov -d . --framework terraform
+                  CHECKOV_EXIT_CODE=$?
+                  if [ $CHECKOV_EXIT_CODE -ne 0 ]; then
+                    echo "⚠️ Security scan found issues in $provider module"
+                    exit 1
+                  fi
+                fi
+                cd ../../..
+              fi
+            done
+          fi
           
           # CONDITIONAL STAGES
           if [[ "$COMMIT_MSG" == *"[release]"* ]] && [[ "$CODEBUILD_WEBHOOK_HEAD_REF" != "refs/heads/main" ]]; then

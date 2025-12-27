@@ -27,7 +27,7 @@ Developers interact with infrastructure through YAML parameter files, abstractin
 ### Multi-Platform CI/CD
 - **Azure DevOps** (`.azure/` directory) - Gold standard implementation
 - **GitHub Actions** (`.github/workflows/` directory) - Mirrors Azure DevOps functionality
-- **AWS CodePipeline** (`.aws/` directory) - CloudFormation-based pipeline
+- **AWS CodePipeline** (`buildspec.yml`) - Manual setup with build specification
 - **Oracle Cloud DevOps** (`.oci/` directory) - OCI DevOps build specification
 
 All four platforms execute identical plan-test-release workflows with intelligent commit message filtering, conditional PR creation, and reviewer-controlled semantic versioning.
@@ -288,12 +288,6 @@ Add to CodeBuild service role (`codebuild-{project-name}-service-role`):
 - Includes Terraform planning, security scanning with Checkov
 - Supports PR creation and intelligent versioning
 - Fails pipeline on security violations
-
-#### AWS CodePipeline Parameters
-- `TerraformCloudToken` - Terraform Cloud API token
-- `GitHubToken` - GitHub Personal Access Token
-- `GitHubOwner` - GitHub repository owner
-- `GitHubRepo` - GitHub repository name
 #### Oracle Cloud DevOps Parameters
 - `TF_CLOUD_TOKEN` - Terraform Cloud API token
 - `GITHUB_TOKEN` - GitHub Personal Access Token
@@ -329,14 +323,12 @@ Templates are now centralized in the `iac-pipeline-templates` repository:
 - **Cost optimization** - Automated resource sizing recommendations
 - **Compliance scanning** - Policy-as-code integration
 - **Monitoring integration** - Automatic alerting setup
+- **CloudFormation Support** - Infrastructure-as-Code pipeline deployment for AWS
 
 ## Repository Structure
 
 ```
 iac-molecule-compute/
-├── .aws/                      # AWS CodePipeline infrastructure
-│   ├── pipeline-complete.yaml # Complete CloudFormation template
-│   └── deploy-pipeline.sh     # Deployment script
 ├── .azure/                    # Azure DevOps pipeline definitions
 │   └── pipeline.yml           # Main pipeline using centralized templates
 ├── .github/                   # GitHub Actions workflows
@@ -345,8 +337,9 @@ iac-molecule-compute/
 ├── .oci/                      # Oracle Cloud DevOps pipeline
 │   └── build_spec.yaml        # OCI DevOps build specification
 ```
-.oci/                      # Oracle Cloud DevOps pipeline
-│   └── build_spec.yaml    # OCI DevOps build specification
+├── .oci/                      # Oracle Cloud DevOps pipeline
+│   └── build_spec.yaml        # OCI DevOps build specification
+├── buildspec.yml              # AWS CodeBuild specification
 ├── examples/                  # Pipeline testing examples
 │   ├── azure-example/         # Azure module consumption example
 │   ├── aws-example/           # AWS module consumption example
