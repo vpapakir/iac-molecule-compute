@@ -31,7 +31,11 @@ phases:
     commands:
       - |
         COMMIT_MSG=$(git log -1 --pretty=%B)
-        echo "Commit message: $COMMIT_MSG"
+        echo "=== COMMIT MESSAGE DEBUG ==="
+        echo "Raw commit message: '$COMMIT_MSG'"
+        echo "Commit message length: ${#COMMIT_MSG}"
+        echo "Contains [aws]: $(echo "$COMMIT_MSG" | grep -c '\[aws\]' || echo '0')"
+        echo "=============================="
         
         # Check if this is AWS pipeline or default (no prefix)
         if [[ "$COMMIT_MSG" == *"[aws]"* ]] || [[ "$COMMIT_MSG" != *"[ado]"* && "$COMMIT_MSG" != *"[gh]"* && "$COMMIT_MSG" != *"[oci]"* ]]; then
