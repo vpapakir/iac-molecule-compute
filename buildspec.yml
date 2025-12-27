@@ -44,22 +44,36 @@ phases:
           
           # PLAN STAGE - Test module consumption
           echo "→ Running Plan stage..."
-          if [ -d "examples/aws-example" ]; then
-            cd examples/aws-example
-            terraform init
-            echo "--- AWS Example Plan ---"
-            terraform plan
-            echo "--- AWS Example Validation ---"
-            terraform validate
-            cd ../..
-          fi
-          
-          if [ -d "examples/azure-example" ]; then
-            cd examples/azure-example
-            terraform init
-            echo "--- Azure Example Validation ---"
-            terraform validate
-            cd ../..
+          if [[ "$COMMIT_MSG" == *"[aws]"* ]]; then
+            # AWS-specific pipeline - only test AWS example
+            if [ -d "examples/aws-example" ]; then
+              cd examples/aws-example
+              terraform init
+              echo "--- AWS Example Plan ---"
+              terraform plan
+              echo "--- AWS Example Validation ---"
+              terraform validate
+              cd ../..
+            fi
+          else
+            # Default pipeline - test all examples
+            if [ -d "examples/aws-example" ]; then
+              cd examples/aws-example
+              terraform init
+              echo "--- AWS Example Plan ---"
+              terraform plan
+              echo "--- AWS Example Validation ---"
+              terraform validate
+              cd ../..
+            fi
+            
+            if [ -d "examples/azure-example" ]; then
+              cd examples/azure-example
+              terraform init
+              echo "--- Azure Example Validation ---"
+              terraform validate
+              cd ../..
+            fi
           fi
           
           # TEST STAGE - Security scanning and linting
