@@ -17,8 +17,15 @@ phases:
   build:
     commands:
       - |
-        # Get commit message
-        COMMIT_MSG=$(git log -1 --pretty=%B 2>/dev/null | head -1 | tr -d '\n\r' || echo "")
+        # Get commit message from GitHub API (CodeBuild git limitation workaround)
+        if [ -n "$CODEBUILD_RESOLVED_SOURCE_VERSION" ] && [ -n "$GITHUB_TOKEN" ]; then
+          COMMIT_MSG=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/vpapakir/iac-molecule-compute/commits/$CODEBUILD_RESOLVED_SOURCE_VERSION" \
+            | grep '"message":' | head -1 | sed 's/.*"message": "\([^"]*\)".*/\1/' || echo "")
+        else
+          COMMIT_MSG=""
+        fi
+        
         echo "Commit message: '$COMMIT_MSG'"
         
         # Check if this pipeline should run
