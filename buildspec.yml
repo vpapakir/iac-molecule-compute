@@ -46,13 +46,13 @@ phases:
           terraform fmt -check
           terraform validate
           
-          # Run Checkov security scan - fail on HIGH/CRITICAL findings
+          # Run Checkov security scan - fail on any security findings
           echo "Running security scan with Checkov..."
-          checkov -d . --framework terraform --check CKV_AWS_79,CKV_AWS_8,CKV_AWS_135,CKV_AWS_88,CKV_AWS_126 --soft-fail
+          checkov -d . --framework terraform
           CHECKOV_EXIT_CODE=$?
           
           if [ $CHECKOV_EXIT_CODE -ne 0 ]; then
-            echo "⚠️ Security scan found HIGH/CRITICAL issues that must be addressed"
+            echo "⚠️ Security scan found issues that must be addressed"
             echo "Please review and fix security findings before proceeding"
             exit 1
           fi

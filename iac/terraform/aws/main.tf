@@ -100,14 +100,33 @@ resource "aws_key_pair" "main" {
   tags = var.tags
 }
 
+resource "aws_eip" "main" {
+  count    = var.create_public_ip ? 1 : 0
+  instance = aws_instance.main.id
+  domain   = "vpc"
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-eip"
+  })
+
+  depends_on = [aws_internet_gateway.main]
+}
+
 resource "aws_instance" "main" {
   ami                         = var.ami_id != null ? var.ami_id : data.aws_ami.main.id
   instance_type               = var.instance_type
   key_name                    = var.ssh_public_key != null ? aws_key_pair.main[0].key_name : null
   vpc_security_group_ids      = [aws_security_group.main.id]
   subnet_id                   = aws_subnet.main.id
-  associate_public_ip_address = var.create_public_ip
+  associate_public_ip_address = false
+  ebs_optimized               = true
+  monitoring                  = true
   user_data                   = var.user_data
+
+  metadata_options {
+    http_endpoint = "enabled"
+    http_tokens   = "required"
+  }
 
   root_block_device {
     volume_type = var.root_volume_type
