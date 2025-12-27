@@ -16,7 +16,7 @@ variable "instance_size" {
 }
 
 variable "disk_image" {
-  description = "Disk image name"
+  description = "Disk image code (e.g. ubuntu-jammy, debian-11, centos-7)"
   type        = string
   default     = "ubuntu-jammy"
 }
