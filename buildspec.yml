@@ -36,6 +36,13 @@ phases:
           echo "→ Running Plan stage..."
           cd examples/aws-example
           terraform init
+          echo "--- AWS Example Plan ---"
+          terraform plan
+          echo "--- AWS Example Validation ---"
+          terraform validate
+          cd ../azure-example
+          terraform init
+          echo "--- Azure Example Validation ---"
           terraform validate
           cd ../..
           
