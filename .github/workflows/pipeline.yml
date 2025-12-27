@@ -23,12 +23,12 @@ jobs:
         echo "Commit message: $COMMIT_MSG"
         
         # Parse commit message format: [repo] [cloud] [ci-tool] [action]
-        # GitHub Actions should only run when [gh] is the CI tool (3rd position)
-        if [[ "$COMMIT_MSG" =~ \[.*\].*\[.*\].*\[gh\] ]]; then
-          echo "✅ GitHub Actions should handle this (found [gh] as CI tool)"
+        # GitHub Actions should only run when [gh_actions] is the CI tool
+        if [[ "$COMMIT_MSG" == *"[gh_actions]"* ]]; then
+          echo "✅ GitHub Actions should handle this"
           echo "should-run=true" >> $GITHUB_OUTPUT
         else
-          echo "❌ Skipping - [gh] not found as CI tool"
+          echo "❌ Skipping - [gh_actions] not found as CI tool"
           echo "should-run=false" >> $GITHUB_OUTPUT
           exit 0
         fi
@@ -109,7 +109,7 @@ jobs:
           --title "Release: ${CLOUD_PROVIDER} module updates" \
           --body "Automated release PR
 
-        Approve with: [APPROVED] [PATCH] [gh]" \
+        Approve with: [APPROVED] [PATCH] [gh_actions]" \
           --base main \
           --head "$BRANCH_NAME"
         
@@ -132,7 +132,7 @@ jobs:
         echo "Merge message: $MERGE_MSG"
         
         # Check if this tool should publish
-        if [[ "$MERGE_MSG" != *"[gh]"* ]]; then
+        if [[ "$MERGE_MSG" != *"[gh_actions]"* ]]; then
           echo "❌ Skipping publish - not approved for GitHub Actions"
           exit 0
         fi

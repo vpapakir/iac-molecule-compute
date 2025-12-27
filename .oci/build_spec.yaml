@@ -23,7 +23,7 @@ steps:
       echo "Commit message: $COMMIT_MSG"
       
       # Check if this pipeline should run
-      if [[ "$COMMIT_MSG" != *"[oci]"* ]]; then
+      if [[ "$COMMIT_MSG" != *"[oci_pipeline]"* ]]; then
         echo "❌ Skipping - not OCI DevOps job"
         export SHOULD_RUN="false"
         exit 0
@@ -135,7 +135,7 @@ steps:
         --title "Release: ${CLOUD_PROVIDER} module updates" \
         --body "Automated release PR
 
-      Approve with: [APPROVED] [PATCH] [oci]" \
+      Approve with: [APPROVED] [PATCH] [oci_pipeline]" \
         --base main \
         --head "$CURRENT_BRANCH"
       
@@ -162,7 +162,7 @@ steps:
       echo "Merge message: $MERGE_MSG"
       
       # Check if this tool should publish
-      if [[ "$MERGE_MSG" != *"[oci]"* ]]; then
+      if [[ "$MERGE_MSG" != *"[oci_pipeline]"* ]]; then
         echo "❌ Skipping publish - not approved for OCI DevOps"
         exit 0
       fi

@@ -22,7 +22,7 @@ phases:
         echo "Commit message: $COMMIT_MSG"
         
         # Check if this pipeline should run
-        if [[ "$COMMIT_MSG" != *"[aws]"* ]]; then
+        if [[ "$COMMIT_MSG" != *"[aws_pipeline]"* ]]; then
           echo "❌ Skipping - not AWS CodePipeline job"
           exit 0
         fi
@@ -87,7 +87,7 @@ phases:
             https://api.github.com/repos/vpapakir/iac-molecule-compute/pulls \
             -d "{
               \"title\": \"Release: ${CLOUD_PROVIDER} module updates\",
-              \"body\": \"Automated release PR\\n\\nApprove with: [APPROVED] [PATCH] [aws]\",
+              \"body\": \"Automated release PR\\n\\nApprove with: [APPROVED] [PATCH] [aws_pipeline]\",
               \"head\": \"$BRANCH_NAME\",
               \"base\": \"main\"
             }"
@@ -103,7 +103,7 @@ phases:
           echo "Merge message: $MERGE_MSG"
           
           # Check if this tool should publish
-          if [[ "$MERGE_MSG" != *"[aws]"* ]]; then
+          if [[ "$MERGE_MSG" != *"[aws_pipeline]"* ]]; then
             echo "❌ Skipping publish - not approved for AWS CodePipeline"
             exit 0
           fi
