@@ -210,55 +210,56 @@ phases:
             echo "============================="
             
             if [[ "$CURRENT_BRANCH_REF" == "refs/heads/main" ]] || [[ "$CODEBUILD_WEBHOOK_HEAD_REF" == "refs/heads/main" ]] || [[ -z "$COMMIT_MSG" && "$CODEBUILD_SOURCE_REPO_URL" == *"iac-molecule-compute"* ]]; then
-            echo "→ Running Release stage (main branch or empty commit message indicating main branch build)"
-            
-            # Configure git for tagging
-            COMMIT_AUTHOR_EMAIL=$(git log -1 --pretty=format:'%ae')
-            COMMIT_AUTHOR_NAME=$(git log -1 --pretty=format:'%an')
-            git config --global user.email "${COMMIT_AUTHOR_EMAIL:-pipeline@company.com}"
-            git config --global user.name "${COMMIT_AUTHOR_NAME:-AWS CodeBuild}"
-            git remote set-url origin https://$GITHUB_TOKEN@github.com/$CODEBUILD_SOURCE_REPO_URL
-            
-            # Get latest version from git tags
-            git fetch --tags
-            LATEST_TAG=$(git tag -l "v*" | sort -V | tail -n1)
-            
-            if [ -z "$LATEST_TAG" ]; then
-              CURRENT_MAJOR=0
-              CURRENT_MINOR=0
-              CURRENT_PATCH=1
-            else
-              CURRENT_VERSION=${LATEST_TAG#v}
-              CURRENT_MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
-              CURRENT_MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
-              CURRENT_PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
+              echo "→ Running Release stage (main branch or empty commit message indicating main branch build)"
+              
+              # Configure git for tagging
+              COMMIT_AUTHOR_EMAIL=$(git log -1 --pretty=format:'%ae')
+              COMMIT_AUTHOR_NAME=$(git log -1 --pretty=format:'%an')
+              git config --global user.email "${COMMIT_AUTHOR_EMAIL:-pipeline@company.com}"
+              git config --global user.name "${COMMIT_AUTHOR_NAME:-AWS CodeBuild}"
+              git remote set-url origin https://$GITHUB_TOKEN@github.com/$CODEBUILD_SOURCE_REPO_URL
+              
+              # Get latest version from git tags
+              git fetch --tags
+              LATEST_TAG=$(git tag -l "v*" | sort -V | tail -n1)
+              
+              if [ -z "$LATEST_TAG" ]; then
+                CURRENT_MAJOR=0
+                CURRENT_MINOR=0
+                CURRENT_PATCH=1
+              else
+                CURRENT_VERSION=${LATEST_TAG#v}
+                CURRENT_MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
+                CURRENT_MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
+                CURRENT_PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
+              fi
+              
+              # Get PR approval message for version bump
+              MERGE_COMMIT_MSG="$(git log -1 --pretty=%B)"
+              
+              if echo "$MERGE_COMMIT_MSG" | grep -i "APPROVED MAJOR" > /dev/null; then
+                NEW_MAJOR=$((CURRENT_MAJOR + 1))
+                NEW_MINOR=0
+                NEW_PATCH=0
+              elif echo "$MERGE_COMMIT_MSG" | grep -i "APPROVED MINOR" > /dev/null; then
+                NEW_MAJOR=$CURRENT_MAJOR
+                NEW_MINOR=$((CURRENT_MINOR + 1))
+                NEW_PATCH=0
+              else
+                NEW_MAJOR=$CURRENT_MAJOR
+                NEW_MINOR=$CURRENT_MINOR
+                NEW_PATCH=$((CURRENT_PATCH + 1))
+              fi
+              
+              VERSION="$NEW_MAJOR.$NEW_MINOR.$NEW_PATCH"
+              echo "Publishing version: $VERSION"
+              
+              # Create git tag
+              git tag -a "v$VERSION" -m "Automated release v$VERSION"
+              git push origin "v$VERSION"
+              
+              echo "✓ Modules published with version: v$VERSION"
             fi
-            
-            # Get PR approval message for version bump
-            MERGE_COMMIT_MSG="$(git log -1 --pretty=%B)"
-            
-            if echo "$MERGE_COMMIT_MSG" | grep -i "APPROVED MAJOR" > /dev/null; then
-              NEW_MAJOR=$((CURRENT_MAJOR + 1))
-              NEW_MINOR=0
-              NEW_PATCH=0
-            elif echo "$MERGE_COMMIT_MSG" | grep -i "APPROVED MINOR" > /dev/null; then
-              NEW_MAJOR=$CURRENT_MAJOR
-              NEW_MINOR=$((CURRENT_MINOR + 1))
-              NEW_PATCH=0
-            else
-              NEW_MAJOR=$CURRENT_MAJOR
-              NEW_MINOR=$CURRENT_MINOR
-              NEW_PATCH=$((CURRENT_PATCH + 1))
-            fi
-            
-            VERSION="$NEW_MAJOR.$NEW_MINOR.$NEW_PATCH"
-            echo "Publishing version: $VERSION"
-            
-            # Create git tag
-            git tag -a "v$VERSION" -m "Automated release v$VERSION"
-            git push origin "v$VERSION"
-            
-            echo "✓ Modules published with version: v$VERSION"
           fi
           
         else
