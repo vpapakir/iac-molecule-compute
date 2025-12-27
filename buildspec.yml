@@ -19,11 +19,12 @@ phases:
       - |
         # Get commit message
         COMMIT_MSG=$(git log -1 --pretty=%B 2>/dev/null | head -1 | tr -d '\n\r' || echo "")
-        echo "Commit message: $COMMIT_MSG"
+        echo "Commit message: '$COMMIT_MSG'"
         
         # Check if this pipeline should run
         if [[ "$COMMIT_MSG" != *"[aws_pipeline]"* ]]; then
-          echo "❌ Skipping - not AWS CodePipeline job"
+          echo "❌ Skipping - not AWS CodePipeline job (commit: '$COMMIT_MSG')"
+          echo "Note: Ensure CodeBuild source is GitHub (not S3) to access git history"
           exit 0
         fi
         
