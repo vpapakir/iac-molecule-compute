@@ -247,24 +247,48 @@ The release pipeline implements reviewer-controlled semantic versioning:
 
 ## Pipeline Configuration
 
+### Centralized Pipeline Templates
+Pipeline templates have been moved to the centralized `iac-pipeline-templates` repository:
+- **Template Repository**: https://github.com/vpapakir/iac-pipeline-templates
+- **Current Version**: `v0.0.6`
+- **Reusable Across**: All infrastructure modules (atoms, molecules, templates)
+- **Consistent Workflows**: Same plan-test-release logic organization-wide
+
 ### Template-Based Architecture
-Pipelines use reusable templates for maintainability:
+Pipelines use centralized templates for maintainability:
 
 ```
 .azure/
-├── pipeline.yml              # Main pipeline orchestration
-└── templates/
-    ├── stages/
-    │   ├── plan.yml             # Terraform planning stage
-    │   ├── test.yml             # Linting and security scanning
-    │   ├── create-pr.yml        # Pull request creation
-    │   └── release.yml          # Module publishing
-    └── jobs/
-        ├── terraform-plan.yml   # Plan job template
-        ├── terraform-test.yml   # Test job template
-        ├── create-pr.yml        # PR creation job
-        └── terraform-release.yml # Release job template
+└── pipeline.yml              # References centralized Azure DevOps template
+.github/workflows/
+└── pipeline.yml              # References centralized GitHub Actions workflow
+buildspec.yml                 # Downloads centralized AWS script
+.oci/
+└── build_spec.yaml           # Downloads centralized OCI script
 ```
+
+### Pipeline Implementation
+
+#### Azure DevOps (`.azure/pipeline.yml`)
+- **Template**: `azure/stages/traffic-light-pipeline.yml@templates`
+- **Version**: `v0.0.6`
+- **Variable Groups**: `terraform` (TF_CLOUD_TOKEN), `shared` (GITHUB_TOKEN, Azure credentials)
+- **Stages**: CommitCheck → Build → CreatePR → Publish
+
+#### GitHub Actions (`.github/workflows/pipeline.yml`)
+- **Workflow**: `vpapakir/iac-pipeline-templates/.github/workflows/traffic-light-pipeline.yml@v0.0.6`
+- **Secrets**: `TF_CLOUD_TOKEN`, `GITHUB_TOKEN` (auto-provided)
+- **Jobs**: commit-check → build → create-pr → publish
+
+#### AWS CodePipeline (`buildspec.yml`)
+- **Script**: Downloads `aws/scripts/traffic-light-pipeline.sh` from templates repo
+- **Environment Variables**: `TF_CLOUD_TOKEN`, `GITHUB_TOKEN`
+- **Phases**: install → pre_build → build → post_build
+
+#### OCI DevOps (`.oci/build_spec.yaml`)
+- **Script**: Downloads `oci/scripts/traffic-light-pipeline.sh` from templates repo
+- **Parameters**: `TF_CLOUD_TOKEN`, `GITHUB_TOKEN`
+- **Steps**: Download → Execute pipeline script
 
 ### Commit Message-Based Pipeline Triggering
 Control which CI/CD platform executes using commit message prefixes:
@@ -389,11 +413,11 @@ Add to CodeBuild service role (`codebuild-{project-name}-service-role`):
 ## Future Evolution
 
 ### Centralized Pipeline Templates
-Pipeline templates have been moved to the centralized `iac-pipeline-templates` repository:
+Pipeline templates are now centralized in the `iac-pipeline-templates` repository:
 - **Template Repository**: https://github.com/vpapakir/iac-pipeline-templates
-- **Current Version**: `v0.0.3`
-- **Reusable Across**: All infrastructure modules (atoms, molecules, templates)
-- **Consistent Workflows**: Same plan-test-release logic organization-wide
+- **Current Version**: `v0.0.6`
+- **Benefits**: Single source of truth, consistent workflows, easy maintenance
+- **Version Control**: Template updates controlled via semantic versioning
 
 ### Atomic Decomposition
 Over time, individual components will be extracted into separate atoms:
@@ -407,7 +431,7 @@ The compute molecule will then compose these atoms rather than managing resource
 ### Pipeline Template Repository
 Templates are now centralized in the `iac-pipeline-templates` repository:
 - Shared across all infrastructure repositories
-- Versioned template releases (`v0.0.3`)
+- Versioned template releases (`v0.0.6`)
 - Consistent CI/CD patterns organization-wide
 - Reduced code duplication and maintenance overhead
 
