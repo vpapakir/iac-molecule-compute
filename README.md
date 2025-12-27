@@ -8,7 +8,7 @@ This repository implements a **traffic light system** for CI/CD pipeline control
 
 ### Commit Message Convention
 
-All commit messages must follow this format:
+All commit messages must follow the following format:
 ```
 [repo] [cloud] [ci-tool] [action] <description>
 ```
