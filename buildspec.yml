@@ -12,79 +12,145 @@ phases:
       
   pre_build:
     commands:
-      - echo "Starting AWS CodePipeline build..."
-      - echo "Branch - $CODEBUILD_WEBHOOK_HEAD_REF"
+      - echo "Starting AWS CodePipeline..."
       
   build:
     commands:
       - |
+        # Get commit message
+        COMMIT_MSG=$(git log -1 --pretty=%B 2>/dev/null | head -1 | tr -d '\n\r' || echo "")
+        echo "Commit message: $COMMIT_MSG"
+        
+        # Check if this pipeline should run
+        if [[ "$COMMIT_MSG" != *"[aws]"* ]]; then
+          echo "❌ Skipping - not AWS CodePipeline job"
+          exit 0
+        fi
+        
+        echo "✅ AWS CodePipeline should handle this"
+        
         # Configure Terraform Cloud
         mkdir -p ~/.terraform.d
         echo "credentials \"app.terraform.io\" { token = \"$TF_CLOUD_TOKEN\" }" > ~/.terraform.d/credentials.tfrc.json
         
-        # Plan and Test stages
-        cd examples/aws-example
-        terraform init && terraform plan && terraform validate
-        cd ../..
+        # Determine cloud provider from commit message
+        if [[ "$COMMIT_MSG" == *"[aws]"* ]]; then
+          CLOUD_PROVIDER="aws"
+        elif [[ "$COMMIT_MSG" == *"[azure]"* ]]; then
+          CLOUD_PROVIDER="azure"
+        elif [[ "$COMMIT_MSG" == *"[civo]"* ]]; then
+          CLOUD_PROVIDER="civo"
+        elif [[ "$COMMIT_MSG" == *"[oci]"* ]]; then
+          CLOUD_PROVIDER="oci"
+        else
+          CLOUD_PROVIDER="aws"  # default
+        fi
         
-        cd iac/terraform/aws
-        terraform init && terraform fmt -check && terraform validate
-        checkov -d . --framework terraform
-        cd ../../..
+        echo "Target cloud provider: $CLOUD_PROVIDER"
         
-        # Check if this is a feature branch (create PR)
-        if [[ "$CODEBUILD_WEBHOOK_HEAD_REF" != "refs/heads/main" ]] && [[ "$CODEBUILD_WEBHOOK_HEAD_REF" != "" ]]; then
-          echo "Feature branch detected - creating PR"
+        # BUILD: Validate and test
+        echo "→ Running validation for $CLOUD_PROVIDER..."
+        
+        # Test example if exists
+        if [ -d "examples/${CLOUD_PROVIDER}-example" ]; then
+          cd "examples/${CLOUD_PROVIDER}-example"
+          terraform init && terraform plan && terraform validate
+          cd ../..
+        fi
+        
+        # Test module
+        if [ -d "iac/terraform/${CLOUD_PROVIDER}" ]; then
+          cd "iac/terraform/${CLOUD_PROVIDER}"
+          terraform init && terraform fmt -check && terraform validate
+          if [ "$CLOUD_PROVIDER" = "aws" ]; then
+            checkov -d . --framework terraform
+          fi
+          cd ../../..
+        fi
+        
+        # RELEASE: Create PR if release action
+        if [[ "$COMMIT_MSG" == *"[release]"* ]] && [[ "$CODEBUILD_WEBHOOK_HEAD_REF" != "refs/heads/main" ]]; then
+          echo "→ Creating release PR..."
           
           # Install GitHub CLI
           yum update -y && yum install -y git
           curl -fsSL https://github.com/cli/cli/releases/download/v2.40.1/gh_2.40.1_linux_amd64.tar.gz -o gh.tar.gz
           tar -xzf gh.tar.gz && mv gh_2.40.1_linux_amd64/bin/gh /usr/local/bin/
           
-          # Create PR via API
+          # Get current branch name
+          BRANCH_NAME=$(echo "$CODEBUILD_WEBHOOK_HEAD_REF" | sed 's|refs/heads/||' || echo "development")
+          
+          # Create PR
           curl -X POST \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/vpapakir/iac-molecule-compute/pulls \
             -d "{
-              \"title\": \"[aws] Release: Module updates\",
-              \"body\": \"Automated PR - merge with APPROVED PATCH [aws]\",
-              \"head\": \"development\",
+              \"title\": \"Release: ${CLOUD_PROVIDER} module updates\",
+              \"body\": \"Automated release PR\\n\\nApprove with: [APPROVED] [PATCH] [aws]\",
+              \"head\": \"$BRANCH_NAME\",
               \"base\": \"main\"
             }"
-            
-        # Check if this is main branch (publish release)
+          
+          echo "✅ Release PR created"
+          
+        # PUBLISH: Release module if on main branch
         elif [[ "$CODEBUILD_WEBHOOK_HEAD_REF" == "refs/heads/main" ]]; then
-          echo "Main branch detected - publishing release"
+          echo "→ Main branch detected"
+          
+          # Get PR merge commit message for approval
+          MERGE_MSG=$(git log -1 --pretty=%B 2>/dev/null || echo "")
+          echo "Merge message: $MERGE_MSG"
+          
+          # Check if this tool should publish
+          if [[ "$MERGE_MSG" != *"[aws]"* ]]; then
+            echo "❌ Skipping publish - not approved for AWS CodePipeline"
+            exit 0
+          fi
+          
+          echo "✅ Publishing module..."
           
           # Setup git
           git config --global user.email "pipeline@company.com"
-          git config --global user.name "AWS CodeBuild"
+          git config --global user.name "AWS CodePipeline"
           
-          # Get version
+          # Determine version bump
+          if [[ "$MERGE_MSG" == *"[MAJOR]"* ]]; then
+            BUMP_TYPE="major"
+          elif [[ "$MERGE_MSG" == *"[MINOR]"* ]]; then
+            BUMP_TYPE="minor"
+          else
+            BUMP_TYPE="patch"
+          fi
+          
+          # Get current version and bump
           git fetch --tags
           LATEST_TAG=$(git tag -l "v*" | sort -V | tail -n1)
+          
           if [ -z "$LATEST_TAG" ]; then
-            VERSION="0.0.1"
+            NEW_VERSION="0.0.1"
           else
             CURRENT_VERSION=${LATEST_TAG#v}
             IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-            VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+            
+            case $BUMP_TYPE in
+              major) NEW_VERSION="$((MAJOR + 1)).0.0" ;;
+              minor) NEW_VERSION="$MAJOR.$((MINOR + 1)).0" ;;
+              patch) NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))" ;;
+            esac
           fi
           
           # Create and push tag
-          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
           git remote set-url origin https://$GITHUB_TOKEN@github.com/vpapakir/iac-molecule-compute.git
-          git push origin "v$VERSION"
+          git push origin "v$NEW_VERSION"
           
-          echo "Published version: v$VERSION"
-        else
-          echo "Manual build - skipping PR/release"
+          echo "🚀 Published version: v$NEW_VERSION"
         fi
         
   post_build:
     commands:
-      - echo "Build completed"
+      - echo "AWS CodePipeline completed"
 
 artifacts:
   files:
