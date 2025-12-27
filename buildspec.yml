@@ -145,7 +145,22 @@ phases:
           fi
           
           # CONDITIONAL STAGES
-          if [[ "$COMMIT_MSG" == *"[release]"* ]] && [[ "$CODEBUILD_WEBHOOK_HEAD_REF" != "refs/heads/main" ]]; then
+          echo "=== PR CREATION DEBUG ==="
+          echo "COMMIT_MSG contains [release]: $(echo "$COMMIT_MSG" | grep -c '\[release\]' || echo '0')"
+          echo "CODEBUILD_WEBHOOK_HEAD_REF: '$CODEBUILD_WEBHOOK_HEAD_REF'"
+          echo "Current branch check: refs/heads/main vs '$CODEBUILD_WEBHOOK_HEAD_REF'"
+          
+          # Fallback to actual git branch if webhook ref is not available
+          CURRENT_BRANCH_REF="$CODEBUILD_WEBHOOK_HEAD_REF"
+          if [ -z "$CURRENT_BRANCH_REF" ]; then
+            ACTUAL_BRANCH=$(git branch --show-current 2>/dev/null || echo "unknown")
+            CURRENT_BRANCH_REF="refs/heads/$ACTUAL_BRANCH"
+            echo "Using fallback branch: $CURRENT_BRANCH_REF"
+          fi
+          echo "Final branch ref: '$CURRENT_BRANCH_REF'"
+          echo "============================="
+          
+          if [[ "$COMMIT_MSG" == *"[release]"* ]] && [[ "$CURRENT_BRANCH_REF" != "refs/heads/main" ]]; then
             echo "→ Creating PR (release flag + feature branch)"
             
             # Install GitHub CLI
@@ -168,7 +183,7 @@ phases:
             fi
             
             # Create PR
-            CURRENT_BRANCH=$(echo $CODEBUILD_WEBHOOK_HEAD_REF | sed 's|refs/heads/||')
+            CURRENT_BRANCH=$(echo $CURRENT_BRANCH_REF | sed 's|refs/heads/||')
             PR_TITLE="Release: $(echo "$COMMIT_MSG" | head -n1 | sed 's/\[.*\]//g' | xargs)"
             
             gh pr create \
@@ -183,7 +198,7 @@ phases:
             
             echo "✓ Pull request created successfully"
             
-          elif [[ "$CODEBUILD_WEBHOOK_HEAD_REF" == "refs/heads/main" ]]; then
+          elif [[ "$CURRENT_BRANCH_REF" == "refs/heads/main" ]]; then
             echo "→ Running Release stage (main branch)"
             
             # Configure git for tagging
