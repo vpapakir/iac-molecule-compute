@@ -146,14 +146,12 @@ phases:
             done
           fi
           
-          # CONDITIONAL STAGES
+          # CONDITIONAL STAGES - Force PR creation for testing
           echo "=== PR CREATION DEBUG ==="
           echo "Raw COMMIT_MSG: '$COMMIT_MSG'"
           echo "COMMIT_MSG length: ${#COMMIT_MSG}"
-          echo "COMMIT_MSG hex dump: $(echo -n "$COMMIT_MSG" | xxd -p)"
-          echo "COMMIT_MSG contains [release]: $(echo "$COMMIT_MSG" | grep -c '\[release\]' || echo '0')"
+          echo "Forcing PR creation since commit message is empty (manual build)"
           echo "CODEBUILD_WEBHOOK_HEAD_REF: '$CODEBUILD_WEBHOOK_HEAD_REF'"
-          echo "Current branch check: refs/heads/main vs '$CODEBUILD_WEBHOOK_HEAD_REF'"
           
           # Fallback to actual git branch if webhook ref is not available
           CURRENT_BRANCH_REF="$CODEBUILD_WEBHOOK_HEAD_REF"
@@ -165,7 +163,8 @@ phases:
           echo "Final branch ref: '$CURRENT_BRANCH_REF'"
           echo "============================="
           
-          if [[ "$COMMIT_MSG" == *"[release]"* ]] && [[ "$CURRENT_BRANCH_REF" != "refs/heads/main" ]]; then
+          # Force PR creation if commit message is empty (manual build) and not on main
+          if ([[ "$COMMIT_MSG" == *"[release]"* ]] || [[ -z "$COMMIT_MSG" ]]) && [[ "$CURRENT_BRANCH_REF" != "refs/heads/main" ]]; then
             echo "→ Creating PR (release flag + feature branch)"
             
             # Install GitHub CLI
@@ -189,13 +188,14 @@ phases:
             
             # Create PR
             CURRENT_BRANCH=$(echo $CURRENT_BRANCH_REF | sed 's|refs/heads/||')
-            PR_TITLE="Release: $(echo "$COMMIT_MSG" | head -n1 | sed 's/\[.*\]//g' | xargs)"
+            PR_TITLE="Release: Civo module fixes and improvements"
             
             gh pr create \
               --title "$PR_TITLE" \
               --body "Automated PR created by AWS CodePipeline
 
-            Commit: $COMMIT_MSG
+            Branch: $CURRENT_BRANCH
+            Manual build trigger
 
             Ready for review and release approval." \
               --base "$TARGET_BRANCH" \
