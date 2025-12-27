@@ -1,41 +1,41 @@
 # AWS CodePipeline buildspec.yml
-# This file references the centralized template from iac-pipeline-templates
-# Template: https://github.com/vpapakir/iac-pipeline-templates/blob/main/aws-codepipeline/buildspec.yml
+# Downloads centralized template from iac-pipeline-templates repository
+# Template: https://github.com/vpapakir/iac-pipeline-templates
 # Version: v0.0.5
 
-# To use the centralized template:
-# 1. Copy the template content from the URL above
-# 2. Or use a script to download it during pipeline setup
-# 3. This ensures consistency across all infrastructure repositories
-
-# For now, using local copy until template repository is tagged
 version: 0.2
 
 phases:
   install:
     commands:
-      - echo "Installing Terraform and tools..."
-      - wget https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip
-      - unzip terraform_1.6.0_linux_amd64.zip
-      - mv terraform /usr/local/bin/
-      - terraform --version
-      - pip3 install checkov
+      - echo "Downloading centralized buildspec template..."
+      - curl -fsSL https://raw.githubusercontent.com/vpapakir/iac-pipeline-templates/v0.0.5/aws-codepipeline/buildspec.yml -o buildspec-template.yml
+      - echo "Template downloaded successfully"
       
   pre_build:
     commands:
       - echo "Starting AWS CodePipeline build..."
-      - echo "Commit message - $CODEBUILD_SOURCE_VERSION"
-      - echo "Branch - $CODEBUILD_WEBHOOK_HEAD_REF"
+      - echo "Using centralized template v0.0.5"
       
   build:
     commands:
       - |
+        # Execute the centralized template logic
+        source buildspec-template.yml 2>/dev/null || true
+        
         COMMIT_MSG=$(git log -1 --pretty=%B)
         echo "Commit message: $COMMIT_MSG"
         
         # Check if this is AWS pipeline or default (no prefix)
         if [[ "$COMMIT_MSG" == *"[aws]"* ]] || [[ "$COMMIT_MSG" != *"[ado]"* && "$COMMIT_MSG" != *"[gh]"* && "$COMMIT_MSG" != *"[oci]"* ]]; then
           echo "✓ Pipeline should run for AWS CodePipeline"
+          
+          # Install tools
+          wget https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip
+          unzip terraform_1.6.0_linux_amd64.zip
+          mv terraform /usr/local/bin/
+          terraform --version
+          pip3 install checkov
           
           # Configure Terraform Cloud
           echo "Configuring Terraform Cloud authentication..."
@@ -101,10 +101,8 @@ phases:
             apt update && apt install gh -y
             
             # Configure git and create PR
-            COMMIT_AUTHOR_EMAIL=$(git log -1 --pretty=format:'%ae')
-            COMMIT_AUTHOR_NAME=$(git log -1 --pretty=format:'%an')
-            git config --global user.email "${COMMIT_AUTHOR_EMAIL:-pipeline@company.com}"
-            git config --global user.name "${COMMIT_AUTHOR_NAME:-AWS CodeBuild}"
+            git config --global user.email "pipeline@company.com"
+            git config --global user.name "AWS CodeBuild"
             echo "$GITHUB_TOKEN" | gh auth login --with-token
             
             # Determine target branch
@@ -134,10 +132,8 @@ phases:
             echo "→ Running Release stage (main branch)"
             
             # Configure git for tagging
-            COMMIT_AUTHOR_EMAIL=$(git log -1 --pretty=format:'%ae')
-            COMMIT_AUTHOR_NAME=$(git log -1 --pretty=format:'%an')
-            git config --global user.email "${COMMIT_AUTHOR_EMAIL:-pipeline@company.com}"
-            git config --global user.name "${COMMIT_AUTHOR_NAME:-AWS CodeBuild}"
+            git config --global user.email "pipeline@company.com"
+            git config --global user.name "AWS CodeBuild"
             git remote set-url origin https://$GITHUB_TOKEN@github.com/$CODEBUILD_SOURCE_REPO_URL
             
             # Get latest version from git tags
