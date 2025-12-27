@@ -174,8 +174,12 @@ phases:
             tar -xzf gh.tar.gz
             mv gh_2.40.1_linux_amd64/bin/gh /usr/local/bin/
             
-            # Ensure we're in the right directory and it's a git repo
+            # Initialize git repo if needed
             cd $CODEBUILD_SRC_DIR
+            if [ ! -d ".git" ]; then
+              git init
+              git remote add origin https://github.com/vpapakir/iac-molecule-compute.git
+            fi
             git config --global --add safe.directory $CODEBUILD_SRC_DIR
             
             # Configure git and create PR
@@ -183,21 +187,17 @@ phases:
             git config --global user.name "AWS CodeBuild"
             echo "$GITHUB_TOKEN" | gh auth login --with-token
             
-            # Create PR
-            CURRENT_BRANCH="development"
-            TARGET_BRANCH="main"
-            PR_TITLE="Release: Civo module fixes and improvements"
-            
-            gh pr create \
-              --title "$PR_TITLE" \
-              --body "Automated PR created by AWS CodePipeline
-
-            Branch: $CURRENT_BRANCH
-            Manual build trigger
-
-            Ready for review and release approval." \
-              --base "$TARGET_BRANCH" \
-              --head "$CURRENT_BRANCH"
+            # Create PR using GitHub API directly since git history is unavailable
+            curl -X POST \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              https://api.github.com/repos/vpapakir/iac-molecule-compute/pulls \
+              -d '{
+                "title": "Release: Civo module fixes and improvements",
+                "body": "Automated PR created by AWS CodePipeline\n\nManual build trigger\n\nReady for review and release approval.",
+                "head": "development",
+                "base": "main"
+              }'
             
             echo "✓ Pull request created successfully"
             
