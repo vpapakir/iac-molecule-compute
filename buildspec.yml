@@ -201,8 +201,15 @@ phases:
             
             echo "✓ Pull request created successfully"
             
-          elif [[ "$CURRENT_BRANCH_REF" == "refs/heads/main" ]]; then
-            echo "→ Running Release stage (main branch)"
+          echo "=== RELEASE STAGE DEBUG ==="
+          echo "CURRENT_BRANCH_REF: '$CURRENT_BRANCH_REF'"
+          echo "CODEBUILD_WEBHOOK_HEAD_REF: '$CODEBUILD_WEBHOOK_HEAD_REF'"
+          echo "CODEBUILD_SOURCE_REPO_URL: '$CODEBUILD_SOURCE_REPO_URL'"
+          echo "Empty commit check: $([ -z "$COMMIT_MSG" ] && echo 'true' || echo 'false')"
+          echo "============================="
+          
+          elif [[ "$CURRENT_BRANCH_REF" == "refs/heads/main" ]] || [[ "$CODEBUILD_WEBHOOK_HEAD_REF" == "refs/heads/main" ]] || [[ -z "$COMMIT_MSG" && "$CODEBUILD_SOURCE_REPO_URL" == *"iac-molecule-compute"* ]]; then
+            echo "→ Running Release stage (main branch or empty commit message indicating main branch build)"
             
             # Configure git for tagging
             COMMIT_AUTHOR_EMAIL=$(git log -1 --pretty=format:'%ae')
