@@ -8,7 +8,7 @@ terraform {
 }
 
 module "civo_compute" {
-  source = "../iac/terraform/civo"
+  source = "../../iac/terraform/civo"
 
   name_prefix       = "test-civo"
   region           = "LON1"
