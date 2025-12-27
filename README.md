@@ -27,7 +27,7 @@ Developers interact with infrastructure through YAML parameter files, abstractin
 ### Multi-Platform CI/CD
 - **Azure DevOps** (`.azure/` directory) - Gold standard implementation
 - **GitHub Actions** (`.github/workflows/` directory) - Mirrors Azure DevOps functionality
-- **AWS CodePipeline** (`.aws/` directory) - CloudFormation-based pipeline
+- **AWS CodePipeline** (`buildspec.yml`) - Manual setup with build specification
 - **Oracle Cloud DevOps** (`.oci/` directory) - OCI DevOps build specification
 
 All four platforms execute identical plan-test-release workflows with intelligent commit message filtering, conditional PR creation, and reviewer-controlled semantic versioning.
@@ -183,20 +183,27 @@ Pipelines use reusable templates for maintainability:
 ### Commit Message-Based Pipeline Triggering
 Control which CI/CD platform executes using commit message prefixes:
 
-- `[ado]` - Triggers Azure DevOps pipeline
-- `[gh]` - Triggers GitHub Actions pipeline  
-- `[aws]` - Triggers AWS CodePipeline
-- `[oci]` - Triggers Oracle Cloud DevOps pipeline
-- `[release]` - Initiates release workflow (creates PR or publishes)
-- No prefix - Defaults to Azure DevOps pipeline
+| Commit Message | Platform | Target Provider | Modules Validated | Use Case |
+|---|---|---|---|---|
+| `[ado]` | Azure DevOps | Azure | Azure only | Azure-specific development |
+| `[gh] [azure]` | GitHub Actions | Azure | Azure only | Cross-platform Azure testing |
+| `[gh] [amazon]` | GitHub Actions | AWS | AWS only | Cross-platform AWS testing |
+| `[gh] [civo]` | GitHub Actions | Civo | Civo only | Cross-platform Civo testing |
+| `[gh] [oci]` | GitHub Actions | OCI | OCI only | Cross-platform OCI testing |
+| `[gh]` | GitHub Actions | All | All modules | Multi-cloud validation |
+| `[aws]` | AWS CodePipeline | AWS | AWS only | AWS-specific development |
+| `[oci]` | Oracle Cloud DevOps | OCI | OCI only | OCI-specific development |
+| No prefix | Azure DevOps (default) | All | All modules | General development, Civo work |
 
-**Examples:**
+**Release Workflow Examples:**
 ```bash
-git commit -m "fix: update terraform module"           # Runs Azure DevOps (default)
-git commit -m "[gh] feat: add new feature"             # Runs GitHub Actions only
-git commit -m "[aws] chore: update pipeline"           # Runs AWS CodePipeline only
-git commit -m "[oci] docs: update documentation"       # Runs Oracle Cloud DevOps only
-git commit -m "[ado][release] docs: update README"     # Runs Azure DevOps + Release workflow
+# Platform-specific releases
+git commit -m "[ado] [release] feat: azure vm improvements"     # Azure DevOps → PR
+git commit -m "[aws] [release] feat: ec2 security updates"       # AWS CodePipeline → PR
+git commit -m "[gh] [azure] [release] feat: test azure changes" # GitHub Actions → PR
+
+# Multi-cloud releases
+git commit -m "[release] feat: cross-cloud networking updates"   # Azure DevOps → PR (default)
 ```
 
 ### Pipeline Stages
@@ -249,11 +256,45 @@ git commit -m "[ado][release] docs: update README"     # Runs Azure DevOps + Rel
 - `TF_CLOUD_TOKEN` - Terraform Cloud API token
 - `GITHUB_TOKEN` - Automatically provided by GitHub Actions
 
-#### AWS CodePipeline Parameters
-- `TerraformCloudToken` - Terraform Cloud API token
-- `GitHubToken` - GitHub Personal Access Token
-- `GitHubOwner` - GitHub repository owner
-- `GitHubRepo` - GitHub repository name
+#### AWS CodePipeline Setup
+
+**Manual Setup Required:**
+1. **Create CodePipeline** manually in AWS Console
+2. **Configure Source**: GitHub (Version 2) with webhook events
+3. **Create CodeBuild Project** with:
+   - **Source**: Use buildspec file (`buildspec.yml`)
+   - **Environment**: Standard Linux image
+   - **Service Role**: Auto-created role
+
+**Required Environment Variables:**
+- `TF_CLOUD_TOKEN` - Terraform Cloud API token (Plaintext)
+- `GITHUB_TOKEN` - GitHub Personal Access Token (for PR creation)
+
+**Required IAM Permissions:**
+Add to CodeBuild service role (`codebuild-{project-name}-service-role`):
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeAvailabilityZones",
+                "ec2:DescribeImages",
+                "ec2:DescribeVpcs",
+                "ec2:DescribeSubnets"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```
+
+**Pipeline Execution:**
+- Uses `buildspec.yml` for complete plan-test-release workflow
+- Includes Terraform planning, security scanning with Checkov
+- Supports PR creation and intelligent versioning
+- Fails pipeline on security violations
 #### Oracle Cloud DevOps Parameters
 - `TF_CLOUD_TOKEN` - Terraform Cloud API token
 - `GITHUB_TOKEN` - GitHub Personal Access Token
@@ -289,14 +330,12 @@ Templates are now centralized in the `iac-pipeline-templates` repository:
 - **Cost optimization** - Automated resource sizing recommendations
 - **Compliance scanning** - Policy-as-code integration
 - **Monitoring integration** - Automatic alerting setup
+- **CloudFormation Support** - Infrastructure-as-Code pipeline deployment for AWS
 
 ## Repository Structure
 
 ```
 iac-molecule-compute/
-├── .aws/                      # AWS CodePipeline infrastructure
-│   ├── pipeline-complete.yaml # Complete CloudFormation template
-│   └── deploy-pipeline.sh     # Deployment script
 ├── .azure/                    # Azure DevOps pipeline definitions
 │   └── pipeline.yml           # Main pipeline using centralized templates
 ├── .github/                   # GitHub Actions workflows
@@ -305,8 +344,9 @@ iac-molecule-compute/
 ├── .oci/                      # Oracle Cloud DevOps pipeline
 │   └── build_spec.yaml        # OCI DevOps build specification
 ```
-.oci/                      # Oracle Cloud DevOps pipeline
-│   └── build_spec.yaml    # OCI DevOps build specification
+├── .oci/                      # Oracle Cloud DevOps pipeline
+│   └── build_spec.yaml        # OCI DevOps build specification
+├── buildspec.yml              # AWS CodeBuild specification
 ├── examples/                  # Pipeline testing examples
 │   ├── azure-example/         # Azure module consumption example
 │   ├── aws-example/           # AWS module consumption example

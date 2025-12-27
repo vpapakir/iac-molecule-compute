@@ -30,6 +30,7 @@ resource "civo_firewall" "main" {
       port_range = ingress_rule.value.port_range
       cidr       = ingress_rule.value.cidr
       label      = ingress_rule.value.label
+      action     = "allow"
     }
   }
 
@@ -38,6 +39,7 @@ resource "civo_firewall" "main" {
     port_range = "1-65535"
     cidr       = ["0.0.0.0/0"]
     label      = "All TCP outbound"
+    action     = "allow"
   }
 
   egress_rule {
@@ -45,12 +47,14 @@ resource "civo_firewall" "main" {
     port_range = "1-65535"
     cidr       = ["0.0.0.0/0"]
     label      = "All UDP outbound"
+    action     = "allow"
   }
 
   egress_rule {
     protocol   = "icmp"
     cidr       = ["0.0.0.0/0"]
     label      = "All ICMP outbound"
+    action     = "allow"
   }
 }
 
@@ -62,7 +66,7 @@ resource "civo_ssh_key" "main" {
 
 resource "civo_instance" "main" {
   hostname     = "${var.name_prefix}-instance"
-  size         = data.civo_size.main.name
+  size         = var.instance_size
   disk_image   = data.civo_disk_image.main.id
   region       = var.region
   network_id   = civo_network.main.id

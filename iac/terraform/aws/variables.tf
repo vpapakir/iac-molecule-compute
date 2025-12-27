@@ -88,7 +88,7 @@ variable "ingress_rules" {
       from_port   = 22
       to_port     = 22
       protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
+      cidr_blocks = ["10.0.0.0/8"] # Restrict SSH to private networks only
     }
   ]
 }

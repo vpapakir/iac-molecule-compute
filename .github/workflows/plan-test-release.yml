@@ -2,7 +2,6 @@ name: Plan-Test-Release
 
 on:
   push:
-    branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
 
@@ -19,6 +18,7 @@ jobs:
       should-run: ${{ steps.check.outputs.should-run }}
       should-create-pr: ${{ steps.check.outputs.should-create-pr }}
       should-release: ${{ steps.check.outputs.should-release }}
+      target-provider: ${{ steps.check.outputs.target-provider }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -31,25 +31,43 @@ jobs:
           COMMIT_MSG=$(git log -1 --pretty=%B)
           echo "Commit message: $COMMIT_MSG"
           
-          # Check if this is GitHub Actions pipeline or default (no prefix)
-          if [[ "$COMMIT_MSG" == *"[gh]"* ]] || [[ "$COMMIT_MSG" != *"[ado]"* && "$COMMIT_MSG" != *"[aws]"* ]]; then
+          # Check if this is GitHub Actions pipeline
+          if [[ "$COMMIT_MSG" == *"[gh]"* ]]; then
             echo "✓ Pipeline should run for GitHub Actions"
             echo "should-run=true" >> $GITHUB_OUTPUT
             
-            # Set pipeline variables for conditional stages
-            if [[ "$COMMIT_MSG" == *"[release]"* ]] && [[ "$GITHUB_REF" != "refs/heads/main" ]] && [[ "$GITHUB_REF" != "refs/heads/master" ]]; then
-              echo "should-create-pr=true" >> $GITHUB_OUTPUT
-              echo "should-release=false" >> $GITHUB_OUTPUT
-            elif [[ "$GITHUB_REF" == "refs/heads/main" ]] || [[ "$GITHUB_REF" == "refs/heads/master" ]]; then
-              echo "should-create-pr=false" >> $GITHUB_OUTPUT
-              echo "should-release=true" >> $GITHUB_OUTPUT
+            # Determine target provider
+            if [[ "$COMMIT_MSG" == *"[azure]"* ]]; then
+              echo "target-provider=azure" >> $GITHUB_OUTPUT
+            elif [[ "$COMMIT_MSG" == *"[amazon]"* ]]; then
+              echo "target-provider=aws" >> $GITHUB_OUTPUT
+            elif [[ "$COMMIT_MSG" == *"[civo]"* ]]; then
+              echo "target-provider=civo" >> $GITHUB_OUTPUT
+            elif [[ "$COMMIT_MSG" == *"[oci]"* ]]; then
+              echo "target-provider=oci" >> $GITHUB_OUTPUT
             else
-              echo "should-create-pr=false" >> $GITHUB_OUTPUT
-              echo "should-release=false" >> $GITHUB_OUTPUT
+              echo "target-provider=all" >> $GITHUB_OUTPUT
             fi
-          else
+          elif [[ "$COMMIT_MSG" == *"[ado]"* ]] || [[ "$COMMIT_MSG" == *"[aws]"* ]] || [[ "$COMMIT_MSG" == *"[oci]"* ]]; then
             echo "✗ Pipeline should not run for GitHub Actions - commit message: $COMMIT_MSG"
             echo "should-run=false" >> $GITHUB_OUTPUT
+            echo "should-create-pr=false" >> $GITHUB_OUTPUT
+            echo "should-release=false" >> $GITHUB_OUTPUT
+            exit 0
+          else
+            echo "✓ Pipeline should run for GitHub Actions (default - no platform prefix)"
+            echo "should-run=true" >> $GITHUB_OUTPUT
+            echo "target-provider=all" >> $GITHUB_OUTPUT
+          fi
+          
+          # Set pipeline variables for conditional stages
+          if [[ "$COMMIT_MSG" == *"[release]"* ]] && [[ "$GITHUB_REF" != "refs/heads/main" ]] && [[ "$GITHUB_REF" != "refs/heads/master" ]]; then
+            echo "should-create-pr=true" >> $GITHUB_OUTPUT
+            echo "should-release=false" >> $GITHUB_OUTPUT
+          elif [[ "$GITHUB_REF" == "refs/heads/main" ]] || [[ "$GITHUB_REF" == "refs/heads/master" ]]; then
+            echo "should-create-pr=false" >> $GITHUB_OUTPUT
+            echo "should-release=true" >> $GITHUB_OUTPUT
+          else
             echo "should-create-pr=false" >> $GITHUB_OUTPUT
             echo "should-release=false" >> $GITHUB_OUTPUT
           fi
@@ -75,13 +93,47 @@ jobs:
 
       - name: Test module consumption patterns
         run: |
-          echo "Testing module consumption patterns..."
-          cd examples/aws-example
-          terraform init
-          terraform plan
-          cd ../azure-example  
-          terraform init
-          terraform plan
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          TARGET_PROVIDER="${{ needs.commit-check.outputs.target-provider }}"
+          echo "Target provider: $TARGET_PROVIDER"
+          
+          if [[ "$TARGET_PROVIDER" == "azure" ]]; then
+            echo "Testing Azure module consumption..."
+            cd examples/azure-example
+            terraform init
+            terraform plan
+          elif [[ "$TARGET_PROVIDER" == "aws" ]]; then
+            echo "Testing AWS module consumption..."
+            cd examples/aws-example
+            terraform init
+            terraform plan
+          elif [[ "$TARGET_PROVIDER" == "civo" ]]; then
+            echo "Testing Civo module consumption..."
+            if [ -d "examples/civo-example" ]; then
+              cd examples/civo-example
+              terraform init
+              terraform plan
+            else
+              echo "Civo example not found, validating module only"
+            fi
+          elif [[ "$TARGET_PROVIDER" == "oci" ]]; then
+            echo "Testing OCI module consumption..."
+            if [ -d "examples/oci-example" ]; then
+              cd examples/oci-example
+              terraform init
+              terraform plan
+            else
+              echo "OCI example not found, validating module only"
+            fi
+          else
+            echo "Testing all module consumption patterns..."
+            cd examples/aws-example
+            terraform init
+            terraform plan
+            cd ../azure-example
+            terraform init
+            terraform plan
+          fi
           echo "✓ Plan stage completed successfully"
 
   test:
@@ -109,23 +161,46 @@ jobs:
 
       - name: Run security scanning and linting
         run: |
-          echo "Running security scanning and linting..."
-          cd iac/terraform/aws
-          terraform fmt -check
-          terraform validate
-          checkov -f . --framework terraform --quiet
-          cd ../azure
-          terraform fmt -check  
-          terraform validate
-          checkov -f . --framework terraform --quiet
-          cd ../civo
-          terraform fmt -check
-          terraform validate
-          checkov -f . --framework terraform --quiet
-          cd ../oci
-          terraform fmt -check
-          terraform validate
-          checkov -f . --framework terraform --quiet
+          TARGET_PROVIDER="${{ needs.commit-check.outputs.target-provider }}"
+          echo "Target provider: $TARGET_PROVIDER"
+          
+          if [[ "$TARGET_PROVIDER" == "azure" ]]; then
+            echo "Scanning Azure module only..."
+            cd iac/terraform/azure
+            terraform fmt -check
+            terraform validate
+            checkov -f . --framework terraform --quiet
+          elif [[ "$TARGET_PROVIDER" == "aws" ]]; then
+            echo "Scanning AWS module only..."
+            cd iac/terraform/aws
+            terraform fmt -check
+            terraform validate
+            checkov -f . --framework terraform --quiet
+          elif [[ "$TARGET_PROVIDER" == "civo" ]]; then
+            echo "Scanning Civo module only..."
+            cd iac/terraform/civo
+            terraform fmt -check
+            terraform validate
+            checkov -f . --framework terraform --quiet
+          elif [[ "$TARGET_PROVIDER" == "oci" ]]; then
+            echo "Scanning OCI module only..."
+            cd iac/terraform/oci
+            terraform fmt -check
+            terraform validate
+            checkov -f . --framework terraform --quiet
+          else
+            echo "Scanning all modules..."
+            for provider in aws azure civo oci; do
+              if [ -d "iac/terraform/$provider" ]; then
+                echo "Scanning $provider module..."
+                cd "iac/terraform/$provider"
+                terraform fmt -check
+                terraform validate
+                checkov -f . --framework terraform --quiet
+                cd ../../..
+              fi
+            done
+          fi
           echo "✓ All security and linting tests passed"
 
   create-pr:
