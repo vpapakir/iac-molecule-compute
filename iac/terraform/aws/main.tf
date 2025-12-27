@@ -42,9 +42,24 @@ resource "aws_flow_log" "main" {
   vpc_id          = aws_vpc.main.id
 }
 
+resource "aws_kms_key" "vpc_flow_log" {
+  description             = "KMS key for VPC Flow Logs encryption"
+  deletion_window_in_days = 7
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-vpc-flow-log-key"
+  })
+}
+
+resource "aws_kms_alias" "vpc_flow_log" {
+  name          = "alias/${var.name_prefix}-vpc-flow-log"
+  target_key_id = aws_kms_key.vpc_flow_log.key_id
+}
+
 resource "aws_cloudwatch_log_group" "vpc_flow_log" {
   name              = "/aws/vpc/flowlogs/${var.name_prefix}"
-  retention_in_days = 7
+  retention_in_days = 365
+  kms_key_id        = aws_kms_key.vpc_flow_log.arn
 
   tags = var.tags
 }
@@ -77,14 +92,19 @@ resource "aws_iam_role_policy" "flow_log" {
     Statement = [
       {
         Action = [
-          "logs:CreateLogGroup",
           "logs:CreateLogStream",
-          "logs:PutLogEvents",
+          "logs:PutLogEvents"
+        ]
+        Effect   = "Allow"
+        Resource = "${aws_cloudwatch_log_group.vpc_flow_log.arn}:*"
+      },
+      {
+        Action = [
           "logs:DescribeLogGroups",
           "logs:DescribeLogStreams"
         ]
         Effect   = "Allow"
-        Resource = "*"
+        Resource = aws_cloudwatch_log_group.vpc_flow_log.arn
       }
     ]
   })
