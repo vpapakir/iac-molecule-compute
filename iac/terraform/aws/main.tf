@@ -30,7 +30,7 @@ resource "aws_subnet" "main" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = var.subnet_cidr
   availability_zone       = data.aws_availability_zones.available.names[0]
-  map_public_ip_on_launch = var.create_public_ip
+  map_public_ip_on_launch = false
 
   tags = merge(var.tags, {
     Name = "${var.name_prefix}-subnet"
@@ -101,12 +101,13 @@ resource "aws_key_pair" "main" {
 }
 
 resource "aws_instance" "main" {
-  ami                    = var.ami_id != null ? var.ami_id : data.aws_ami.main.id
-  instance_type          = var.instance_type
-  key_name               = var.ssh_public_key != null ? aws_key_pair.main[0].key_name : null
-  vpc_security_group_ids = [aws_security_group.main.id]
-  subnet_id              = aws_subnet.main.id
-  user_data              = var.user_data
+  ami                         = var.ami_id != null ? var.ami_id : data.aws_ami.main.id
+  instance_type               = var.instance_type
+  key_name                    = var.ssh_public_key != null ? aws_key_pair.main[0].key_name : null
+  vpc_security_group_ids      = [aws_security_group.main.id]
+  subnet_id                   = aws_subnet.main.id
+  associate_public_ip_address = var.create_public_ip
+  user_data                   = var.user_data
 
   root_block_device {
     volume_type = var.root_volume_type

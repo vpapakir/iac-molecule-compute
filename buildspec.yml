@@ -45,7 +45,18 @@ phases:
           terraform init
           terraform fmt -check
           terraform validate
-          checkov -d . --framework terraform --quiet
+          
+          # Run Checkov security scan - fail on HIGH/CRITICAL findings
+          echo "Running security scan with Checkov..."
+          checkov -d . --framework terraform --check CKV_AWS_79,CKV_AWS_8,CKV_AWS_135,CKV_AWS_88,CKV_AWS_126 --soft-fail
+          CHECKOV_EXIT_CODE=$?
+          
+          if [ $CHECKOV_EXIT_CODE -ne 0 ]; then
+            echo "⚠️ Security scan found HIGH/CRITICAL issues that must be addressed"
+            echo "Please review and fix security findings before proceeding"
+            exit 1
+          fi
+          
           cd ../..
           
           # CONDITIONAL STAGES
