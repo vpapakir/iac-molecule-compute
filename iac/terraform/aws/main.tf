@@ -26,6 +26,70 @@ resource "aws_vpc" "main" {
   })
 }
 
+resource "aws_default_security_group" "default" {
+  vpc_id = aws_vpc.main.id
+
+  # Remove all default rules - no ingress or egress allowed
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-default-sg-restricted"
+  })
+}
+
+resource "aws_flow_log" "main" {
+  iam_role_arn    = aws_iam_role.flow_log.arn
+  log_destination = aws_cloudwatch_log_group.vpc_flow_log.arn
+  traffic_type    = "ALL"
+  vpc_id          = aws_vpc.main.id
+}
+
+resource "aws_cloudwatch_log_group" "vpc_flow_log" {
+  name              = "/aws/vpc/flowlogs/${var.name_prefix}"
+  retention_in_days = 7
+
+  tags = var.tags
+}
+
+resource "aws_iam_role" "flow_log" {
+  name = "${var.name_prefix}-flow-log-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "vpc-flow-logs.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = var.tags
+}
+
+resource "aws_iam_role_policy" "flow_log" {
+  name = "${var.name_prefix}-flow-log-policy"
+  role = aws_iam_role.flow_log.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogGroups",
+          "logs:DescribeLogStreams"
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 resource "aws_subnet" "main" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = var.subnet_cidr
@@ -68,11 +132,13 @@ resource "aws_route_table_association" "main" {
 
 resource "aws_security_group" "main" {
   name_prefix = "${var.name_prefix}-sg"
+  description = "Security group for ${var.name_prefix} compute instance"
   vpc_id      = aws_vpc.main.id
 
   dynamic "ingress" {
     for_each = var.ingress_rules
     content {
+      description = "Allow ${ingress.value.protocol} traffic on port ${ingress.value.from_port}-${ingress.value.to_port}"
       from_port   = ingress.value.from_port
       to_port     = ingress.value.to_port
       protocol    = ingress.value.protocol
@@ -81,9 +147,26 @@ resource "aws_security_group" "main" {
   }
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    description = "Allow HTTP outbound traffic"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow HTTPS outbound traffic"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow DNS outbound traffic"
+    from_port   = 53
+    to_port     = 53
+    protocol    = "udp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -112,6 +195,32 @@ resource "aws_eip" "main" {
   depends_on = [aws_internet_gateway.main]
 }
 
+resource "aws_iam_role" "instance" {
+  name = "${var.name_prefix}-instance-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = var.tags
+}
+
+resource "aws_iam_instance_profile" "main" {
+  name = "${var.name_prefix}-instance-profile"
+  role = aws_iam_role.instance.name
+
+  tags = var.tags
+}
+
 resource "aws_instance" "main" {
   ami                         = var.ami_id != null ? var.ami_id : data.aws_ami.main.id
   instance_type               = var.instance_type
@@ -121,6 +230,7 @@ resource "aws_instance" "main" {
   associate_public_ip_address = false
   ebs_optimized               = true
   monitoring                  = true
+  iam_instance_profile        = aws_iam_instance_profile.main.name
   user_data                   = var.user_data
 
   metadata_options {
