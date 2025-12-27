@@ -12,7 +12,7 @@ phases:
       
   pre_build:
     commands:
-      - echo "Starting AWS CodePipeline build..."
+      - echo "Starting AWS CodePipeline build.."
       - echo "Commit message - $CODEBUILD_SOURCE_VERSION"
       - echo "Branch - $CODEBUILD_WEBHOOK_HEAD_REF"
       # Test webhook trigger
