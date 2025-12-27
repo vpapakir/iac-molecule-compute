@@ -30,12 +30,23 @@ phases:
   build:
     commands:
       - |
-        COMMIT_MSG=$(git log -1 --pretty=%B)
-        echo "=== COMMIT MESSAGE DEBUG ==="
-        echo "Raw commit message: '$COMMIT_MSG'"
-        echo "Commit message length: ${#COMMIT_MSG}"
-        echo "Contains [aws]: $(echo "$COMMIT_MSG" | grep -c '\[aws\]' || echo '0')"
-        echo "=============================="
+        # Get commit message from CodePipeline environment or git
+        if [ -n "$CODEBUILD_SOURCE_VERSION" ] && [[ "$CODEBUILD_SOURCE_VERSION" == *"arn:aws:s3"* ]]; then
+          # CodePipeline source - commit message not available, use default behavior
+          COMMIT_MSG=""
+          echo "=== COMMIT MESSAGE DEBUG ==="
+          echo "CodePipeline source detected - no commit message available"
+          echo "Using default pipeline behavior (scan all modules)"
+          echo "=============================="
+        else
+          # Direct git source or webhook
+          COMMIT_MSG=$(git log -1 --pretty=%B 2>/dev/null || echo "")
+          echo "=== COMMIT MESSAGE DEBUG ==="
+          echo "Raw commit message: '$COMMIT_MSG'"
+          echo "Commit message length: ${#COMMIT_MSG}"
+          echo "Contains [aws]: $(echo "$COMMIT_MSG" | grep -c '\[aws\]' || echo '0')"
+          echo "=============================="
+        fi
         
         # Check if this is AWS pipeline or default (no prefix)
         if [[ "$COMMIT_MSG" == *"[aws]"* ]] || [[ "$COMMIT_MSG" != *"[ado]"* && "$COMMIT_MSG" != *"[gh]"* && "$COMMIT_MSG" != *"[oci]"* ]]; then
