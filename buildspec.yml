@@ -36,6 +36,10 @@ phases:
         # Check if this is AWS pipeline or default (no prefix)
         if [[ "$COMMIT_MSG" == *"[aws]"* ]] || [[ "$COMMIT_MSG" != *"[ado]"* && "$COMMIT_MSG" != *"[gh]"* && "$COMMIT_MSG" != *"[oci]"* ]]; then
           echo "✓ Pipeline should run for AWS CodePipeline"
+          echo "DEBUG: Commit message contains [aws]: $(echo "$COMMIT_MSG" | grep -o '\[aws\]' || echo 'NO')"
+          echo "DEBUG: Commit message does not contain [ado]: $(echo "$COMMIT_MSG" | grep -o '\[ado\]' && echo 'NO' || echo 'YES')"
+          echo "DEBUG: Commit message does not contain [gh]: $(echo "$COMMIT_MSG" | grep -o '\[gh\]' && echo 'NO' || echo 'YES')"
+          echo "DEBUG: Commit message does not contain [oci]: $(echo "$COMMIT_MSG" | grep -o '\[oci\]' && echo 'NO' || echo 'YES')"
           
           # Configure Terraform Cloud
           echo "Configuring Terraform Cloud authentication..."
@@ -82,6 +86,7 @@ phases:
           # Determine which modules to scan based on commit message
           if [[ "$COMMIT_MSG" == *"[aws]"* ]]; then
             # AWS-specific pipeline - only scan AWS module
+            echo "DEBUG: Taking AWS-specific path because commit contains [aws]"
             echo "Scanning AWS module only (AWS-specific pipeline)..."
             if [ -d "iac/terraform/aws" ]; then
               cd iac/terraform/aws
@@ -102,6 +107,7 @@ phases:
             fi
           else
             # Default pipeline - scan all modules
+            echo "DEBUG: Taking default path because commit does NOT contain [aws]"
             echo "Scanning all modules (default pipeline)..."
             for provider in aws azure civo oci; do
               if [ -d "iac/terraform/$provider" ]; then
