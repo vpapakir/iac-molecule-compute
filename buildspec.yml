@@ -148,6 +148,9 @@ phases:
           
           # CONDITIONAL STAGES
           echo "=== PR CREATION DEBUG ==="
+          echo "Raw COMMIT_MSG: '$COMMIT_MSG'"
+          echo "COMMIT_MSG length: ${#COMMIT_MSG}"
+          echo "COMMIT_MSG hex dump: $(echo -n "$COMMIT_MSG" | xxd -p)"
           echo "COMMIT_MSG contains [release]: $(echo "$COMMIT_MSG" | grep -c '\[release\]' || echo '0')"
           echo "CODEBUILD_WEBHOOK_HEAD_REF: '$CODEBUILD_WEBHOOK_HEAD_REF'"
           echo "Current branch check: refs/heads/main vs '$CODEBUILD_WEBHOOK_HEAD_REF'"
