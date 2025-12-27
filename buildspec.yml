@@ -167,27 +167,25 @@ phases:
           if ([[ "$COMMIT_MSG" == *"[release]"* ]] || [[ -z "$COMMIT_MSG" ]]) && [[ "$CURRENT_BRANCH_REF" != "refs/heads/main" ]]; then
             echo "→ Creating PR (release flag + feature branch)"
             
-            # Install GitHub CLI
-            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | gpg --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg
-            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-            apt update && apt install gh -y
+            # Install GitHub CLI for Amazon Linux
+            yum update -y
+            yum install -y git
+            curl -fsSL https://github.com/cli/cli/releases/download/v2.40.1/gh_2.40.1_linux_amd64.tar.gz -o gh.tar.gz
+            tar -xzf gh.tar.gz
+            mv gh_2.40.1_linux_amd64/bin/gh /usr/local/bin/
+            
+            # Ensure we're in the right directory and it's a git repo
+            cd $CODEBUILD_SRC_DIR
+            git config --global --add safe.directory $CODEBUILD_SRC_DIR
             
             # Configure git and create PR
-            COMMIT_AUTHOR_EMAIL=$(git log -1 --pretty=format:'%ae')
-            COMMIT_AUTHOR_NAME=$(git log -1 --pretty=format:'%an')
-            git config --global user.email "${COMMIT_AUTHOR_EMAIL:-pipeline@company.com}"
-            git config --global user.name "${COMMIT_AUTHOR_NAME:-AWS CodeBuild}"
+            git config --global user.email "pipeline@company.com"
+            git config --global user.name "AWS CodeBuild"
             echo "$GITHUB_TOKEN" | gh auth login --with-token
             
-            # Determine target branch
-            if git show-ref --verify --quiet refs/remotes/origin/main; then
-              TARGET_BRANCH="main"
-            else
-              TARGET_BRANCH="master"
-            fi
-            
             # Create PR
-            CURRENT_BRANCH=$(echo $CURRENT_BRANCH_REF | sed 's|refs/heads/||')
+            CURRENT_BRANCH="development"
+            TARGET_BRANCH="main"
             PR_TITLE="Release: Civo module fixes and improvements"
             
             gh pr create \
