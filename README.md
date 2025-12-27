@@ -249,6 +249,46 @@ git commit -m "[ado][release] docs: update README"     # Runs Azure DevOps + Rel
 - `TF_CLOUD_TOKEN` - Terraform Cloud API token
 - `GITHUB_TOKEN` - Automatically provided by GitHub Actions
 
+#### AWS CodePipeline Setup
+
+**Manual Setup Required:**
+1. **Create CodePipeline** manually in AWS Console
+2. **Configure Source**: GitHub (Version 2) with webhook events
+3. **Create CodeBuild Project** with:
+   - **Source**: Use buildspec file (`buildspec.yml`)
+   - **Environment**: Standard Linux image
+   - **Service Role**: Auto-created role
+
+**Required Environment Variables:**
+- `TF_CLOUD_TOKEN` - Terraform Cloud API token (Plaintext)
+- `GITHUB_TOKEN` - GitHub Personal Access Token (for PR creation)
+
+**Required IAM Permissions:**
+Add to CodeBuild service role (`codebuild-{project-name}-service-role`):
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeAvailabilityZones",
+                "ec2:DescribeImages",
+                "ec2:DescribeVpcs",
+                "ec2:DescribeSubnets"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```
+
+**Pipeline Execution:**
+- Uses `buildspec.yml` for complete plan-test-release workflow
+- Includes Terraform planning, security scanning with Checkov
+- Supports PR creation and intelligent versioning
+- Fails pipeline on security violations
+
 #### AWS CodePipeline Parameters
 - `TerraformCloudToken` - Terraform Cloud API token
 - `GitHubToken` - GitHub Personal Access Token
