@@ -2,7 +2,6 @@ name: Plan-Test-Release
 
 on:
   push:
-    branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
 
@@ -75,13 +74,26 @@ jobs:
 
       - name: Test module consumption patterns
         run: |
-          echo "Testing module consumption patterns..."
-          cd examples/aws-example
-          terraform init
-          terraform plan
-          cd ../azure-example  
-          terraform init
-          terraform plan
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "Commit message: $COMMIT_MSG"
+          
+          if [[ "$COMMIT_MSG" == *"[gh]"* ]]; then
+            echo "Testing module consumption patterns for GitHub Actions..."
+            cd examples/aws-example
+            terraform init
+            terraform plan
+            cd ../azure-example  
+            terraform init
+            terraform plan
+          else
+            echo "Testing module consumption patterns (default pipeline)..."
+            cd examples/aws-example
+            terraform init
+            terraform plan
+            cd ../azure-example  
+            terraform init
+            terraform plan
+          fi
           echo "✓ Plan stage completed successfully"
 
   test:
@@ -109,23 +121,36 @@ jobs:
 
       - name: Run security scanning and linting
         run: |
-          echo "Running security scanning and linting..."
-          cd iac/terraform/aws
-          terraform fmt -check
-          terraform validate
-          checkov -f . --framework terraform --quiet
-          cd ../azure
-          terraform fmt -check  
-          terraform validate
-          checkov -f . --framework terraform --quiet
-          cd ../civo
-          terraform fmt -check
-          terraform validate
-          checkov -f . --framework terraform --quiet
-          cd ../oci
-          terraform fmt -check
-          terraform validate
-          checkov -f . --framework terraform --quiet
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "Commit message: $COMMIT_MSG"
+          
+          if [[ "$COMMIT_MSG" == *"[gh]"* ]]; then
+            echo "Running security scanning and linting for GitHub Actions..."
+            # GitHub-specific pipeline - scan all modules
+            for provider in aws azure civo oci; do
+              if [ -d "iac/terraform/$provider" ]; then
+                echo "Scanning $provider module..."
+                cd "iac/terraform/$provider"
+                terraform fmt -check
+                terraform validate
+                checkov -f . --framework terraform --quiet
+                cd ../../..
+              fi
+            done
+          else
+            echo "Running security scanning and linting (default pipeline)..."
+            # Default pipeline - scan all modules
+            for provider in aws azure civo oci; do
+              if [ -d "iac/terraform/$provider" ]; then
+                echo "Scanning $provider module..."
+                cd "iac/terraform/$provider"
+                terraform fmt -check
+                terraform validate
+                checkov -f . --framework terraform --quiet
+                cd ../../..
+              fi
+            done
+          fi
           echo "✓ All security and linting tests passed"
 
   create-pr:
