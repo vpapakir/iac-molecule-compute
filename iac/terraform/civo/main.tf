@@ -66,7 +66,7 @@ resource "civo_ssh_key" "main" {
 
 resource "civo_instance" "main" {
   hostname     = "${var.name_prefix}-instance"
-  size         = data.civo_size.main.name
+  size         = var.instance_size
   disk_image   = data.civo_disk_image.main.id
   region       = var.region
   network_id   = civo_network.main.id
