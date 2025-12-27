@@ -2,6 +2,92 @@
 
 A cloud-agnostic Terraform molecule for provisioning compute nodes (virtual machines) across multiple cloud providers as part of an atom-molecule-template infrastructure architecture.
 
+## Traffic Light System
+
+This repository implements a **traffic light system** for CI/CD pipeline control using structured commit messages. This ensures only the intended CI tool runs for each commit, preventing pipeline conflicts and resource waste.
+
+### Commit Message Convention
+
+All commit messages must follow the following format:
+```
+[repo] [cloud] [ci-tool] [action] <description>
+```
+
+**Components:**
+- `[repo]`: Repository platform - `[github]` (future: `[gitlab]`, `[bitbucket]`)
+- `[cloud]`: Target cloud provider - `[azure]`, `[aws]`, `[civo]`, `[oci]`
+- `[ci-tool]`: CI/CD platform - `[ado]`, `[gh_actions]`, `[aws_pipeline]`, `[oci_pipeline]`
+- `[action]`: Pipeline action - `[build]`, `[release]`
+
+**Examples:**
+```bash
+# Build and validate Azure module using Azure DevOps
+git commit -m "[github] [azure] [ado] [build] fix: update VM sizes"
+
+# Build and validate AWS module using GitHub Actions
+git commit -m "[github] [aws] [gh_actions] [build] feat: add new instance types"
+
+# Create release PR for Civo module using AWS CodePipeline
+git commit -m "[github] [civo] [aws_pipeline] [release] feat: ready for release"
+```
+
+### Pipeline Actions
+
+#### Build Action `[build]`
+- **Purpose**: Validate and test infrastructure code
+- **Execution**: Only runs in the specified CI tool
+- **Steps**:
+  1. Terraform init, plan, validate on examples
+  2. Terraform fmt check, validate on modules
+  3. Security scanning with Checkov
+- **Output**: Validation results, no module publishing
+
+#### Release Action `[release]`
+- **Purpose**: Create release pull request
+- **Execution**: Only runs in the specified CI tool
+- **Steps**:
+  1. All build validation steps
+  2. Create automated PR to main branch
+- **Output**: Pull request ready for review
+
+### PR Approval and Publishing
+
+When approving a release PR, use this format:
+```
+[APPROVED] [VERSION_BUMP] [ci-tool] <description>
+```
+
+**Components:**
+- `[APPROVED]`: Approval decision
+- `[VERSION_BUMP]`: `[MAJOR]`, `[MINOR]`, or `[PATCH]`
+- `[ci-tool]`: Which CI tool should publish the module
+
+**Examples:**
+```bash
+# Approve with patch version bump via Azure DevOps
+"[APPROVED] [PATCH] [ado] looks good to go"
+
+# Approve with minor version bump via GitHub Actions
+"[APPROVED] [MINOR] [gh_actions] new features added"
+```
+
+### Pipeline Execution Matrix
+
+| Commit Message | Azure DevOps | GitHub Actions | AWS CodePipeline | OCI DevOps |
+|---|---|---|---|---|
+| `[github] [azure] [ado] [build]` | ✅ Run | ❌ Skip | ❌ Skip | ❌ Skip |
+| `[github] [aws] [gh_actions] [release]` | ❌ Skip | ✅ Run | ❌ Skip | ❌ Skip |
+| `[github] [civo] [aws_pipeline] [build]` | ❌ Skip | ❌ Skip | ✅ Run | ❌ Skip |
+| `[github] [oci] [oci_pipeline] [release]` | ❌ Skip | ❌ Skip | ❌ Skip | ✅ Run |
+
+### Benefits
+
+1. **No Pipeline Conflicts**: Only one CI tool runs per commit
+2. **Resource Efficiency**: Eliminates redundant pipeline executions
+3. **Clear Intent**: Commit message explicitly states which tool should run
+4. **Flexible Publishing**: Choose which CI tool publishes the final module
+5. **Multi-Cloud Support**: Test different cloud providers in different CI environments
+
 ## Architecture Overview
 
 This repository follows the **atom-molecule-template** design pattern:
@@ -161,24 +247,48 @@ The release pipeline implements reviewer-controlled semantic versioning:
 
 ## Pipeline Configuration
 
+### Centralized Pipeline Templates
+Pipeline templates have been moved to the centralized `iac-pipeline-templates` repository:
+- **Template Repository**: https://github.com/vpapakir/iac-pipeline-templates
+- **Current Version**: `v0.0.6`
+- **Reusable Across**: All infrastructure modules (atoms, molecules, templates)
+- **Consistent Workflows**: Same plan-test-release logic organization-wide
+
 ### Template-Based Architecture
-Pipelines use reusable templates for maintainability:
+Pipelines use centralized templates for maintainability:
 
 ```
 .azure/
-├── pipeline.yml              # Main pipeline orchestration
-└── templates/
-    ├── stages/
-    │   ├── plan.yml             # Terraform planning stage
-    │   ├── test.yml             # Linting and security scanning
-    │   ├── create-pr.yml        # Pull request creation
-    │   └── release.yml          # Module publishing
-    └── jobs/
-        ├── terraform-plan.yml   # Plan job template
-        ├── terraform-test.yml   # Test job template
-        ├── create-pr.yml        # PR creation job
-        └── terraform-release.yml # Release job template
+└── pipeline.yml              # References centralized Azure DevOps template
+.github/workflows/
+└── pipeline.yml              # References centralized GitHub Actions workflow
+buildspec.yml                 # Downloads centralized AWS script
+.oci/
+└── build_spec.yaml           # Downloads centralized OCI script
 ```
+
+### Pipeline Implementation
+
+#### Azure DevOps (`.azure/pipeline.yml`)
+- **Template**: `azure/stages/traffic-light-pipeline.yml@templates`
+- **Version**: `v0.0.6`
+- **Variable Groups**: `terraform` (TF_CLOUD_TOKEN), `shared` (GITHUB_TOKEN, Azure credentials)
+- **Stages**: CommitCheck → Build → CreatePR → Publish
+
+#### GitHub Actions (`.github/workflows/pipeline.yml`)
+- **Workflow**: `vpapakir/iac-pipeline-templates/.github/workflows/traffic-light-pipeline.yml@v0.0.6`
+- **Secrets**: `TF_CLOUD_TOKEN`, `GITHUB_TOKEN` (auto-provided)
+- **Jobs**: commit-check → build → create-pr → publish
+
+#### AWS CodePipeline (`buildspec.yml`)
+- **Script**: Downloads `aws/scripts/traffic-light-pipeline.sh` from templates repo
+- **Environment Variables**: `TF_CLOUD_TOKEN`, `GITHUB_TOKEN`
+- **Phases**: install → pre_build → build → post_build
+
+#### OCI DevOps (`.oci/build_spec.yaml`)
+- **Script**: Downloads `oci/scripts/traffic-light-pipeline.sh` from templates repo
+- **Parameters**: `TF_CLOUD_TOKEN`, `GITHUB_TOKEN`
+- **Steps**: Download → Execute pipeline script
 
 ### Commit Message-Based Pipeline Triggering
 Control which CI/CD platform executes using commit message prefixes:
@@ -303,11 +413,11 @@ Add to CodeBuild service role (`codebuild-{project-name}-service-role`):
 ## Future Evolution
 
 ### Centralized Pipeline Templates
-Pipeline templates have been moved to the centralized `iac-pipeline-templates` repository:
+Pipeline templates are now centralized in the `iac-pipeline-templates` repository:
 - **Template Repository**: https://github.com/vpapakir/iac-pipeline-templates
-- **Current Version**: `v0.0.3`
-- **Reusable Across**: All infrastructure modules (atoms, molecules, templates)
-- **Consistent Workflows**: Same plan-test-release logic organization-wide
+- **Current Version**: `v0.0.6`
+- **Benefits**: Single source of truth, consistent workflows, easy maintenance
+- **Version Control**: Template updates controlled via semantic versioning
 
 ### Atomic Decomposition
 Over time, individual components will be extracted into separate atoms:
@@ -321,7 +431,7 @@ The compute molecule will then compose these atoms rather than managing resource
 ### Pipeline Template Repository
 Templates are now centralized in the `iac-pipeline-templates` repository:
 - Shared across all infrastructure repositories
-- Versioned template releases (`v0.0.3`)
+- Versioned template releases (`v0.0.6`)
 - Consistent CI/CD patterns organization-wide
 - Reduced code duplication and maintenance overhead
 
@@ -371,25 +481,77 @@ iac-molecule-compute/
 
 ## Contributing
 
-This molecule is designed for reusability across teams and projects. When contributing:
+This molecule implements a **traffic light system** for clean CI/CD pipeline control. When contributing:
 
-1. **Follow commit message conventions** - Use appropriate prefixes for pipeline control
-2. **Use release workflow** - Add `[release]` flag when ready for publication
-3. **Maintain cloud-agnostic interfaces** - Keep YAML schema consistent
-4. **Update documentation** - Ensure README reflects any interface changes
-5. **Test thoroughly** - All examples must work before release
-6. **Follow template patterns** - Use existing job/stage templates when possible
+1. **Follow commit message convention** - Use `[repo] [cloud] [ci-tool] [action]` format
+2. **Test in single CI tool** - Only your specified tool will run
+3. **Use build for development** - Validate changes with `[build]` action
+4. **Use release for PR creation** - Create PRs with `[release]` action  
+5. **Control module publishing** - Choose CI tool in PR approval message
+6. **Maintain cloud-agnostic interfaces** - Keep YAML schema consistent
+7. **Update documentation** - Ensure README reflects any changes
+
+### Quick Reference
+
+```bash
+# Development testing
+git commit -m "[github] [aws] [gh_actions] [build] fix: update security groups"
+
+# Ready for release
+git commit -m "[github] [aws] [gh_actions] [release] feat: new compute features"
+
+# PR approval (in GitHub PR comment)
+"[APPROVED] [MINOR] [gh_actions] new features look good"
+```
+
+This system eliminates pipeline conflicts and ensures clean, predictable CI/CD execution across all supported platforms.
 
 ### Development Workflow
 
-1. **Create feature branch** from develop
-2. **Make changes** to modules or pipeline templates
-3. **Test locally** using example configurations
-4. **Commit with appropriate prefix** (e.g., `[ado] feat: new feature`)
-5. **Push and validate** pipeline execution
-6. **Add `[release]` flag** when ready for publication
-7. **Review and approve** the auto-created PR
-8. **Merge to main** triggers automatic publication
+1. **Create feature branch** from main
+2. **Make infrastructure changes** to modules or examples
+3. **Test with build commits**:
+   ```bash
+   git commit -m "[github] [azure] [ado] [build] fix: update VM configuration"
+   git push origin feature-branch
+   ```
+4. **Validate in target CI tool** - only specified tool runs
+5. **Create release when ready**:
+   ```bash
+   git commit -m "[github] [azure] [ado] [release] feat: ready for release"
+   git push origin feature-branch
+   ```
+6. **Review automated PR** created by CI tool
+7. **Approve with version control**:
+   ```bash
+   # In PR approval message
+   "[APPROVED] [PATCH] [ado] changes look good"
+   ```
+8. **Merge PR** - triggers module publishing in approved CI tool
+
+### Pipeline Configuration
+
+Each CI tool has identical functionality but different trigger conditions:
+
+#### Azure DevOps (`.azure/pipeline.yml`)
+- **Triggers on**: `[ado]` in commit message
+- **Variable Groups**: `terraform` (TF_CLOUD_TOKEN), `shared` (GITHUB_TOKEN)
+- **Stages**: CommitCheck → Build → CreatePR → Publish
+
+#### GitHub Actions (`.github/workflows/pipeline.yml`)
+- **Triggers on**: `[gh_actions]` in commit message  
+- **Secrets**: `TF_CLOUD_TOKEN`, `GITHUB_TOKEN` (auto-provided)
+- **Jobs**: commit-check → build → create-pr → publish
+
+#### AWS CodePipeline (`buildspec.yml`)
+- **Triggers on**: `[aws_pipeline]` in commit message
+- **Environment Variables**: `TF_CLOUD_TOKEN`, `GITHUB_TOKEN`
+- **Phases**: install → pre_build → build → post_build
+
+#### OCI DevOps (`.oci/build_spec.yaml`)
+- **Triggers on**: `[oci_pipeline]` in commit message
+- **Parameters**: `TF_CLOUD_TOKEN`, `GITHUB_TOKEN`
+- **Steps**: Parse → Install → Validate → CreatePR → Publish
 
 ## License
 
