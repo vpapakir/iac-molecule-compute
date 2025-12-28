@@ -118,6 +118,19 @@ resource "oci_core_instance" "main" {
       data.oci_core_images.main.images[0].id :
       "ocid1.image.oc1.iad.aaaaaaaag2uyozo7266bmg26j5ys4yandefokktime5rhriu5yapc2pxg6vq"
     )
+    boot_volume_size_in_gbs = 50
+  }
+
+  launch_options {
+    boot_volume_type                    = "PARAVIRTUALIZED"
+    firmware                           = "UEFI_64"
+    network_type                       = "PARAVIRTUALIZED"
+    remote_data_volume_type            = "PARAVIRTUALIZED"
+    is_pv_encryption_in_transit_enabled = true
+  }
+
+  instance_options {
+    are_legacy_imds_endpoints_disabled = true
   }
 
   metadata = {
