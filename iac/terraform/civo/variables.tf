@@ -1,5 +1,5 @@
 variable "name_prefix" {
-  description = "Prefix for all resource name"
+  description = "Prefix for all resource names"
   type        = string
 }
 
@@ -18,7 +18,7 @@ variable "instance_size" {
 variable "disk_image" {
   description = "Disk image UUID"
   type        = string
-  default     = "a4204155-a876-43fa-b4d6-ea2af8774560"  # ubuntu-22.04-server
+  default     = "a4204155-a876-43fa-b4d6-ea2af8774560" # ubuntu-22.04-server
 }
 
 variable "ssh_public_key" {
