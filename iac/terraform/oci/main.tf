@@ -123,9 +123,9 @@ resource "oci_core_instance" "main" {
 
   launch_options {
     boot_volume_type                    = "PARAVIRTUALIZED"
-    firmware                           = "UEFI_64"
-    network_type                       = "PARAVIRTUALIZED"
-    remote_data_volume_type            = "PARAVIRTUALIZED"
+    firmware                            = "UEFI_64"
+    network_type                        = "PARAVIRTUALIZED"
+    remote_data_volume_type             = "PARAVIRTUALIZED"
     is_pv_encryption_in_transit_enabled = true
   }
 
