@@ -8,6 +8,9 @@ on:
 
 jobs:
   traffic-light-pipeline:
+    permissions:
+      contents: read
+      pull-requests: write
     uses: vpapakir/iac-pipeline-templates/.github/workflows/traffic-light-pipeline.yml@v0.0.15
     with:
       ci-tool: 'gh_actions'
