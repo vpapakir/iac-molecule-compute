@@ -146,7 +146,8 @@ All platforms execute identical plan-test-release workflows with intelligent com
 #### OCI (`iac/terraform/oci/`)
 - **Resource**: OCI compute instance (flexible shapes supported)
 - **Networking**: VCN, subnet, security list, internet gateway
-- **Features**: SSH key management, configurable shapes, custom images
+- **Features**: SSH key management, configurable shapes, custom images, security hardening
+- **Security**: In-transit encryption enabled, legacy metadata endpoints disabled
 - **State**: Terraform Cloud workspace (`compute-oci-dev`)
 
 ### Module Structure
@@ -432,9 +433,10 @@ The compute molecule will then compose these atoms rather than managing resource
 ### Pipeline Template Repository
 Templates are now centralized in the `iac-pipeline-templates` repository:
 - Shared across all infrastructure repositories
-- Versioned template releases (`v0.0.8`)
+- Versioned template releases (`v0.0.14`)
 - Consistent CI/CD patterns organization-wide
 - Reduced code duplication and maintenance overhead
+- Automated code quality checks with PR creation
 
 ### Additional Features
 - **Multi-environment support** - Dev, staging, production configurations
