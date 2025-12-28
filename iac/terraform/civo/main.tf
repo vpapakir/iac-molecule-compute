@@ -5,13 +5,6 @@ data "civo_size" "main" {
   }
 }
 
-data "civo_disk_image" "main" {
-  filter {
-    key    = "name"
-    values = [var.disk_image]
-  }
-}
-
 resource "civo_network" "main" {
   label  = "${var.name_prefix}-network"
   region = var.region
@@ -67,7 +60,7 @@ resource "civo_ssh_key" "main" {
 resource "civo_instance" "main" {
   hostname     = "${var.name_prefix}-instance"
   size         = var.instance_size
-  disk_image   = data.civo_disk_image.main.id
+  disk_image   = var.disk_image
   region       = var.region
   network_id   = civo_network.main.id
   firewall_id  = civo_firewall.main.id

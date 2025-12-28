@@ -17,7 +17,7 @@ module "civo_compute" {
   name_prefix       = "test-civo"
   region           = "LON1"
   instance_size    = "g3.small"
-  disk_image       = "ubuntu-22.04-server"
+  disk_image       = "a4204155-a876-43fa-b4d6-ea2af8774560"  # ubuntu-22.04-server
   create_public_ip = true
   
   firewall_rules = [
