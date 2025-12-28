@@ -50,13 +50,13 @@ resource "oci_core_route_table" "main" {
 }
 
 resource "oci_core_subnet" "main" {
-  compartment_id      = var.compartment_id
-  vcn_id              = oci_core_vcn.main.id
-  cidr_block          = var.subnet_cidr
-  display_name        = "${var.name_prefix}-subnet"
-  dns_label           = "subnet"
-  route_table_id      = var.create_public_ip ? oci_core_route_table.main[0].id : oci_core_vcn.main.default_route_table_id
-  security_list_ids   = [oci_core_security_list.main.id]
+  compartment_id             = var.compartment_id
+  vcn_id                     = oci_core_vcn.main.id
+  cidr_block                 = var.subnet_cidr
+  display_name               = "${var.name_prefix}-subnet"
+  dns_label                  = "subnet"
+  route_table_id             = var.create_public_ip ? oci_core_route_table.main[0].id : oci_core_vcn.main.default_route_table_id
+  security_list_ids          = [oci_core_security_list.main.id]
   prohibit_public_ip_on_vnic = !var.create_public_ip
 
   freeform_tags = var.tags
@@ -118,7 +118,7 @@ resource "oci_core_instance" "main" {
 
   metadata = {
     ssh_authorized_keys = var.ssh_public_key
-    user_data          = var.user_data != null ? base64encode(var.user_data) : null
+    user_data           = var.user_data != null ? base64encode(var.user_data) : null
   }
 
   freeform_tags = var.tags

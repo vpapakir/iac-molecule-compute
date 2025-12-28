@@ -6,6 +6,7 @@ variable "name_prefix" {
 variable "compartment_id" {
   description = "OCI compartment ID"
   type        = string
+  default     = "ocid1.compartment.oc1..example" # Mock compartment for validation
 }
 
 variable "instance_shape" {
