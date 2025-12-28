@@ -1,5 +1,9 @@
 name: Infrastructure Pipeline
 
+permissions:
+  contents: read
+  pull-requests: write
+
 on:
   push:
     branches: ['*']
@@ -8,10 +12,17 @@ on:
 
 jobs:
   traffic-light-pipeline:
-    uses: vpapakir/iac-pipeline-templates/.github/workflows/traffic-light-pipeline.yml@v0.0.8
+    uses: vpapakir/iac-pipeline-templates/.github/workflows/traffic-light-pipeline.yml@v0.0.15
     with:
       ci-tool: 'gh_actions'
       default-cloud-provider: 'aws'
     secrets:
       terraform-cloud-token: ${{ secrets.TF_CLOUD_TOKEN }}
       github-token: ${{ secrets.GITHUB_TOKEN }}
+      civo-token: ${{ secrets.CIVO_TOKEN }}
+      oci-tenancy-ocid: ${{ secrets.OCI_TENANCY_OCID }}
+      oci-user-ocid: ${{ secrets.OCI_USER_OCID }}
+      oci-fingerprint: ${{ secrets.OCI_FINGERPRINT }}
+      oci-private-key: ${{ secrets.OCI_PRIVATE_KEY }}
+      oci-region: ${{ secrets.OCI_REGION }}
+      oci-compartment-id: ${{ secrets.OCI_COMPARTMENT_ID }}

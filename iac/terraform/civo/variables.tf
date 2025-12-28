@@ -16,9 +16,9 @@ variable "instance_size" {
 }
 
 variable "disk_image" {
-  description = "Disk image name"
+  description = "Disk image UUID"
   type        = string
-  default     = "ubuntu-jammy"
+  default     = "a4204155-a876-43fa-b4d6-ea2af8774560" # ubuntu-22.04-server
 }
 
 variable "ssh_public_key" {

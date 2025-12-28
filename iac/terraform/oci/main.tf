@@ -50,13 +50,13 @@ resource "oci_core_route_table" "main" {
 }
 
 resource "oci_core_subnet" "main" {
-  compartment_id      = var.compartment_id
-  vcn_id              = oci_core_vcn.main.id
-  cidr_block          = var.subnet_cidr
-  display_name        = "${var.name_prefix}-subnet"
-  dns_label           = "subnet"
-  route_table_id      = var.create_public_ip ? oci_core_route_table.main[0].id : oci_core_vcn.main.default_route_table_id
-  security_list_ids   = [oci_core_security_list.main.id]
+  compartment_id             = var.compartment_id
+  vcn_id                     = oci_core_vcn.main.id
+  cidr_block                 = var.subnet_cidr
+  display_name               = "${var.name_prefix}-subnet"
+  dns_label                  = "subnet"
+  route_table_id             = var.create_public_ip ? oci_core_route_table.main[0].id : oci_core_vcn.main.default_route_table_id
+  security_list_ids          = [oci_core_security_list.main.id]
   prohibit_public_ip_on_vnic = !var.create_public_ip
 
   freeform_tags = var.tags
@@ -113,12 +113,29 @@ resource "oci_core_instance" "main" {
 
   source_details {
     source_type = "image"
-    source_id   = var.image_id != null ? var.image_id : data.oci_core_images.main.images[0].id
+    source_id = var.image_id != null ? var.image_id : (
+      length(data.oci_core_images.main.images) > 0 ?
+      data.oci_core_images.main.images[0].id :
+      "ocid1.image.oc1.iad.aaaaaaaag2uyozo7266bmg26j5ys4yandefokktime5rhriu5yapc2pxg6vq"
+    )
+    boot_volume_size_in_gbs = 50
+  }
+
+  launch_options {
+    boot_volume_type                    = "PARAVIRTUALIZED"
+    firmware                            = "UEFI_64"
+    network_type                        = "PARAVIRTUALIZED"
+    remote_data_volume_type             = "PARAVIRTUALIZED"
+    is_pv_encryption_in_transit_enabled = true
+  }
+
+  instance_options {
+    are_legacy_imds_endpoints_disabled = true
   }
 
   metadata = {
     ssh_authorized_keys = var.ssh_public_key
-    user_data          = var.user_data != null ? base64encode(var.user_data) : null
+    user_data           = var.user_data != null ? base64encode(var.user_data) : null
   }
 
   freeform_tags = var.tags
