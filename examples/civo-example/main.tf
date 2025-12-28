@@ -7,13 +7,17 @@ terraform {
   }
 }
 
+provider "civo" {
+  # Token will be provided via CIVO_TOKEN environment variable
+}
+
 module "civo_compute" {
   source = "../../iac/terraform/civo"
 
   name_prefix       = "test-civo"
   region           = "LON1"
   instance_size    = "g3.small"
-  disk_image       = "ubuntu-jammy"
+  disk_image       = "ubuntu-22.04-server"
   create_public_ip = true
   
   firewall_rules = [

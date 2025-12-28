@@ -16,9 +16,9 @@ variable "instance_size" {
 }
 
 variable "disk_image" {
-  description = "Disk image code (e.g. ubuntu-jammy, debian-11, centos-7)"
+  description = "Disk image name"
   type        = string
-  default     = "ubuntu-jammy"
+  default     = "ubuntu-22.04-server"
 }
 
 variable "ssh_public_key" {

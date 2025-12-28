@@ -7,7 +7,7 @@ data "civo_size" "main" {
 
 data "civo_disk_image" "main" {
   filter {
-    key    = "code"
+    key    = "name"
     values = [var.disk_image]
   }
 }
