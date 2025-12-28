@@ -113,7 +113,11 @@ resource "oci_core_instance" "main" {
 
   source_details {
     source_type = "image"
-    source_id   = var.image_id != null ? var.image_id : data.oci_core_images.main.images[0].id
+    source_id   = var.image_id != null ? var.image_id : (
+      length(data.oci_core_images.main.images) > 0 ? 
+      data.oci_core_images.main.images[0].id : 
+      "ocid1.image.oc1.iad.aaaaaaaag2uyozo7266bmg26j5ys4yandefokktime5rhriu5yapc2pxg6vq"
+    )
   }
 
   metadata = {
