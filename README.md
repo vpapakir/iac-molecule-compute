@@ -252,7 +252,7 @@ The release pipeline implements reviewer-controlled semantic versioning:
 ### Centralized Pipeline Templates
 Pipeline templates have been moved to the centralized `iac-pipeline-templates` repository:
 - **Template Repository**: https://github.com/vpapakir/iac-pipeline-templates
-- **Current Version**: `v0.0.14`
+- **Current Version**: `v0.0.15`
 - **Reusable Across**: All infrastructure modules (atoms, molecules, templates)
 - **Consistent Workflows**: Same plan-test-release logic organization-wide
 
@@ -273,12 +273,12 @@ buildspec.yml                 # Downloads centralized AWS script
 
 #### Azure DevOps (`.azure/pipeline.yml`)
 - **Template**: `azure/stages/traffic-light-pipeline.yml@templates`
-- **Version**: `v0.0.14`
+- **Version**: `v0.0.15`
 - **Variable Groups**: `terraform` (TF_CLOUD_TOKEN), `shared` (GITHUB_TOKEN, Azure credentials)
 - **Stages**: CommitCheck → Build → CreatePR → Publish
 
 #### GitHub Actions (`.github/workflows/pipeline.yml`)
-- **Workflow**: `vpapakir/iac-pipeline-templates/.github/workflows/traffic-light-pipeline.yml@v0.0.14`
+- **Workflow**: `vpapakir/iac-pipeline-templates/.github/workflows/traffic-light-pipeline.yml@v0.0.15`
 - **Secrets**: `TF_CLOUD_TOKEN`, `GITHUB_TOKEN` (auto-provided)
 - **Jobs**: commit-check → build → create-pr → publish
 
@@ -417,7 +417,7 @@ Add to CodeBuild service role (`codebuild-{project-name}-service-role`):
 ### Centralized Pipeline Templates
 Pipeline templates are now centralized in the `iac-pipeline-templates` repository:
 - **Template Repository**: https://github.com/vpapakir/iac-pipeline-templates
-- **Current Version**: `v0.0.14`
+- **Current Version**: `v0.0.15`
 - **Benefits**: Single source of truth, consistent workflows, easy maintenance
 - **Version Control**: Template updates controlled via semantic versioning
 
@@ -433,7 +433,7 @@ The compute molecule will then compose these atoms rather than managing resource
 ### Pipeline Template Repository
 Templates are now centralized in the `iac-pipeline-templates` repository:
 - Shared across all infrastructure repositories
-- Versioned template releases (`v0.0.14`)
+- Versioned template releases (`v0.0.15`)
 - Consistent CI/CD patterns organization-wide
 - Reduced code duplication and maintenance overhead
 - Automated code quality checks with PR creation
