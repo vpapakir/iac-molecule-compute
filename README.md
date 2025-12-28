@@ -68,7 +68,7 @@ When approving a release PR, use this format:
 "[APPROVED] [PATCH] [ado] looks good to go"
 
 # Approve with minor version bump via GitHub Actions
-"[APPROVED] [MINOR] [gh_actions] new features added"
+"[APPROVED] [MINOR] [gh_actions] new features added..."
 ```
 
 ### Pipeline Execution Matrix
