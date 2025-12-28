@@ -115,8 +115,9 @@ Developers interact with infrastructure through YAML parameter files, abstractin
 - **GitHub Actions** (`.github/workflows/` directory) - Mirrors Azure DevOps functionality
 - **AWS CodePipeline** (`buildspec.yml`) - Manual setup with build specification
 - **Oracle Cloud DevOps** (`.oci/` directory) - OCI DevOps build specification
+- **Automated Code Quality** (`.github/workflows/sanity-check.yml`) - Weekly sanity checks
 
-All four platforms execute identical plan-test-release workflows with intelligent commit message filtering, conditional PR creation, and reviewer-controlled semantic versioning.
+All platforms execute identical plan-test-release workflows with intelligent commit message filtering, conditional PR creation, and reviewer-controlled semantic versioning.
 
 ## Current Implementation
 
@@ -250,7 +251,7 @@ The release pipeline implements reviewer-controlled semantic versioning:
 ### Centralized Pipeline Templates
 Pipeline templates have been moved to the centralized `iac-pipeline-templates` repository:
 - **Template Repository**: https://github.com/vpapakir/iac-pipeline-templates
-- **Current Version**: `v0.0.8`
+- **Current Version**: `v0.0.13`
 - **Reusable Across**: All infrastructure modules (atoms, molecules, templates)
 - **Consistent Workflows**: Same plan-test-release logic organization-wide
 
@@ -271,12 +272,12 @@ buildspec.yml                 # Downloads centralized AWS script
 
 #### Azure DevOps (`.azure/pipeline.yml`)
 - **Template**: `azure/stages/traffic-light-pipeline.yml@templates`
-- **Version**: `v0.0.8`
+- **Version**: `v0.0.13`
 - **Variable Groups**: `terraform` (TF_CLOUD_TOKEN), `shared` (GITHUB_TOKEN, Azure credentials)
 - **Stages**: CommitCheck → Build → CreatePR → Publish
 
 #### GitHub Actions (`.github/workflows/pipeline.yml`)
-- **Workflow**: `vpapakir/iac-pipeline-templates/.github/workflows/traffic-light-pipeline.yml@v0.0.8`
+- **Workflow**: `vpapakir/iac-pipeline-templates/.github/workflows/traffic-light-pipeline.yml@v0.0.13`
 - **Secrets**: `TF_CLOUD_TOKEN`, `GITHUB_TOKEN` (auto-provided)
 - **Jobs**: commit-check → build → create-pr → publish
 
@@ -415,7 +416,7 @@ Add to CodeBuild service role (`codebuild-{project-name}-service-role`):
 ### Centralized Pipeline Templates
 Pipeline templates are now centralized in the `iac-pipeline-templates` repository:
 - **Template Repository**: https://github.com/vpapakir/iac-pipeline-templates
-- **Current Version**: `v0.0.8`
+- **Current Version**: `v0.0.13`
 - **Benefits**: Single source of truth, consistent workflows, easy maintenance
 - **Version Control**: Template updates controlled via semantic versioning
 
@@ -450,7 +451,8 @@ iac-molecule-compute/
 │   └── pipeline.yml           # Main pipeline using centralized templates
 ├── .github/                   # GitHub Actions workflows
 │   └── workflows/
-│       └── plan-test-release.yml
+│       ├── pipeline.yml       # Traffic light pipeline
+│       └── sanity-check.yml   # Weekly code quality checks
 ├── .oci/                      # Oracle Cloud DevOps pipeline
 │   └── build_spec.yaml        # OCI DevOps build specification
 ```

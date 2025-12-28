@@ -8,14 +8,42 @@ terraform {
 }
 
 provider "oci" {
-  # Authentication will be provided via OCI CLI config or environment variables
-  region = var.region
+  tenancy_ocid     = var.tenancy_ocid
+  user_ocid        = var.user_ocid
+  fingerprint      = var.fingerprint
+  private_key      = var.private_key
+  region           = var.region
 }
 
 variable "region" {
   description = "OCI region"
   type        = string
   default     = "us-ashburn-1"
+}
+
+variable "tenancy_ocid" {
+  description = "OCI tenancy OCID"
+  type        = string
+  default     = ""
+}
+
+variable "user_ocid" {
+  description = "OCI user OCID"
+  type        = string
+  default     = ""
+}
+
+variable "fingerprint" {
+  description = "OCI API key fingerprint"
+  type        = string
+  default     = ""
+}
+
+variable "private_key" {
+  description = "OCI private key content"
+  type        = string
+  default     = ""
+  sensitive   = true
 }
 
 variable "compartment_id" {
