@@ -7,7 +7,7 @@ on:
 
 jobs:
   sanity-check:
-    uses: vpapakir/iac-pipeline-templates/.github/workflows/reusable-sanity-check.yml@v0.0.13
+    uses: vpapakir/iac-pipeline-templates/.github/workflows/reusable-sanity-check.yml@v0.0.14
     with:
       terraform-version: '1.6.0'
       create-pr: true

@@ -251,7 +251,7 @@ The release pipeline implements reviewer-controlled semantic versioning:
 ### Centralized Pipeline Templates
 Pipeline templates have been moved to the centralized `iac-pipeline-templates` repository:
 - **Template Repository**: https://github.com/vpapakir/iac-pipeline-templates
-- **Current Version**: `v0.0.13`
+- **Current Version**: `v0.0.14`
 - **Reusable Across**: All infrastructure modules (atoms, molecules, templates)
 - **Consistent Workflows**: Same plan-test-release logic organization-wide
 
@@ -272,12 +272,12 @@ buildspec.yml                 # Downloads centralized AWS script
 
 #### Azure DevOps (`.azure/pipeline.yml`)
 - **Template**: `azure/stages/traffic-light-pipeline.yml@templates`
-- **Version**: `v0.0.13`
+- **Version**: `v0.0.14`
 - **Variable Groups**: `terraform` (TF_CLOUD_TOKEN), `shared` (GITHUB_TOKEN, Azure credentials)
 - **Stages**: CommitCheck → Build → CreatePR → Publish
 
 #### GitHub Actions (`.github/workflows/pipeline.yml`)
-- **Workflow**: `vpapakir/iac-pipeline-templates/.github/workflows/traffic-light-pipeline.yml@v0.0.13`
+- **Workflow**: `vpapakir/iac-pipeline-templates/.github/workflows/traffic-light-pipeline.yml@v0.0.14`
 - **Secrets**: `TF_CLOUD_TOKEN`, `GITHUB_TOKEN` (auto-provided)
 - **Jobs**: commit-check → build → create-pr → publish
 
@@ -416,7 +416,7 @@ Add to CodeBuild service role (`codebuild-{project-name}-service-role`):
 ### Centralized Pipeline Templates
 Pipeline templates are now centralized in the `iac-pipeline-templates` repository:
 - **Template Repository**: https://github.com/vpapakir/iac-pipeline-templates
-- **Current Version**: `v0.0.13`
+- **Current Version**: `v0.0.14`
 - **Benefits**: Single source of truth, consistent workflows, easy maintenance
 - **Version Control**: Template updates controlled via semantic versioning
 
