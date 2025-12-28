@@ -21,14 +21,14 @@ variable "region" {
 variable "compartment_id" {
   description = "OCI compartment ID"
   type        = string
-  # This should be provided via terraform.tfvars or environment variable
+  default     = null
 }
 
 module "oci_compute" {
   source = "../../iac/terraform/oci"
 
   name_prefix    = "test-oci"
-  compartment_id = var.compartment_id
+  compartment_id = var.compartment_id != null ? var.compartment_id : "ocid1.compartment.oc1..example"
   
   instance_shape = "VM.Standard.E4.Flex"
   instance_shape_config = {
