@@ -8,7 +8,7 @@ on:
 
 jobs:
   traffic-light-pipeline:
-    uses: vpapakir/iac-pipeline-templates/.github/workflows/traffic-light-pipeline.yml@v0.0.9
+    uses: vpapakir/iac-pipeline-templates/.github/workflows/traffic-light-pipeline.yml@v0.0.10
     with:
       ci-tool: 'gh_actions'
       default-cloud-provider: 'aws'
